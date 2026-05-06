@@ -2,15 +2,17 @@
 
 > 把 Claude Code 的用量画成 **橙色版 GitHub 贡献草**。直接读取 `~/.claude/projects/**/*.jsonl`，输出可贴到 profile README 的 SVG。
 
-[English](./README.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
+[English](https://github.com/chuqk/cc-grass/blob/main/README.md) · [日本語](https://github.com/chuqk/cc-grass/blob/main/README.ja.md) · [한국어](https://github.com/chuqk/cc-grass/blob/main/README.ko.md)
 
 <p align="center">
-  <img src="./examples/sample.svg" alt="cc-grass example" width="760">
+  <img src="https://raw.githubusercontent.com/chuqk/cc-grass/main/examples/sample.svg" alt="cc-grass example" width="760">
 </p>
 
 <p align="center">
   <a href="https://chuqk.github.io/cc-grass/">▶ 交互版本（hover 查看每日 token 数）</a>
 </p>
+
+> **隐私提醒**：上面的示例 SVG 和交互页面展示的是作者本人 `~/.claude` 的真实活动数据。在你自己机器上运行 cc-grass 会输出 **你的** 活动数据（每日 token 用量、活跃时段、休息的日子都会暴露），请有意识地选择发布位置。
 
 ## 这是什么
 
@@ -85,10 +87,10 @@ cc-grass 故意不内置调度器，自己挑顺手的方式：
 
 ```bash
 # crontab: 每小时跑一次，有变化就 commit + push
-0 * * * * cd ~/profile-repo && npx -y cc-grass -o grass.svg && \
-  git add grass.svg && git diff --cached --quiet || \
-  (git commit -m "update cc-grass" && git push)
+0 * * * * cd ~/profile-repo && npx -y cc-grass -o grass.svg && git add grass.svg && (git diff --cached --quiet || (git commit -m "update grass" && git push))
 ```
+
+`(... || (... && ...))` 的括号是有意为之。如果写成扁平的 `A && B && C || D`，bash 会按 `((A && B) && C) || D` 解析，导致 `A`/`B`/`C` 任一失败时 `D` 的 commit + push 仍会执行。用子 shell 分组才能确保 commit + push 只在确实有变化时被触发。
 
 或者 GitHub Actions 的 `workflow_dispatch`，或者每次往 profile repo 提交别的东西时顺手跑一下，都行。
 
@@ -116,4 +118,4 @@ console.log(svg);
 
 ## License
 
-[MIT](./LICENSE) © chuqk
+[MIT](https://github.com/chuqk/cc-grass/blob/main/LICENSE) © chuqk

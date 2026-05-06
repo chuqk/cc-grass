@@ -2,15 +2,17 @@
 
 > GitHub-style **orange grass** for your Claude Code usage. Reads `~/.claude/projects/**/*.jsonl` and renders an SVG you can paste into your profile README.
 
-[简体中文](./README.zh-CN.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
+[简体中文](https://github.com/chuqk/cc-grass/blob/main/README.zh-CN.md) · [日本語](https://github.com/chuqk/cc-grass/blob/main/README.ja.md) · [한국어](https://github.com/chuqk/cc-grass/blob/main/README.ko.md)
 
 <p align="center">
-  <img src="./examples/sample.svg" alt="cc-grass example" width="760">
+  <img src="https://raw.githubusercontent.com/chuqk/cc-grass/main/examples/sample.svg" alt="cc-grass example" width="760">
 </p>
 
 <p align="center">
   <a href="https://chuqk.github.io/cc-grass/">▶ Interactive version (with hover tooltips)</a>
 </p>
+
+> **Privacy note**: The sample SVG and the interactive page above show real activity from the author's `~/.claude`. When you run cc-grass on your own machine, the output reflects **your** activity (per-day token volume, active hours, what days you took off). Be intentional about where you publish it.
 
 ## What is this?
 
@@ -85,10 +87,10 @@ cc-grass intentionally does **not** ship with a scheduler. Pick whatever fits yo
 
 ```bash
 # crontab: regenerate every hour and commit if changed
-0 * * * * cd ~/profile-repo && npx -y cc-grass -o grass.svg && \
-  git add grass.svg && git diff --cached --quiet || \
-  (git commit -m "update cc-grass" && git push)
+0 * * * * cd ~/profile-repo && npx -y cc-grass -o grass.svg && git add grass.svg && (git diff --cached --quiet || (git commit -m "update grass" && git push))
 ```
+
+The `(... || (... && ...))` form is intentional. With a flat `A && B && C || D` chain, bash treats it as `((A && B) && C) || D` — meaning a failure anywhere in `A`, `B`, or `C` would still trigger the commit + push. The grouped form ensures `git commit && git push` only runs when there are real changes, never as a fallback for upstream errors.
 
 Or wire it to a `gh workflow_dispatch` you trigger from your laptop, or just run it before you commit other things to your profile repo.
 
@@ -116,4 +118,4 @@ console.log(svg);
 
 ## License
 
-[MIT](./LICENSE) © chuqk
+[MIT](https://github.com/chuqk/cc-grass/blob/main/LICENSE) © chuqk

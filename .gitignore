@@ -5,6 +5,7 @@ dist/
 
 # Local-only files
 bashboard.yml
+SESSION_LOG.md
 *.local
 .env
 .env.local

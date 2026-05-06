@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { parseClaudeProjects } from "./parse.js";
 import { renderSvg, type Metric, type Theme } from "./svg.js";
 import { renderHtml } from "./html.js";
+
+const PKG = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
+const VERSION = PKG.version;
 
 const HELP = `cc-grass — GitHub-style contribution grass for Claude Code usage
 
@@ -30,15 +35,20 @@ Examples:
   cc-grass --since 2026-01-01 --until 2026-12-31
 `;
 
-const VERSION = "0.1.0";
-
 function parseDateOrExit(s: string, endOfDay: boolean): Date {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (!m) {
     process.stderr.write(`Error: invalid date "${s}", expected YYYY-MM-DD\n`);
     process.exit(2);
   }
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const da = Number(m[3]);
+  const d = new Date(y, mo - 1, da);
+  if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) {
+    process.stderr.write(`Error: invalid date "${s}" (no such day on the calendar)\n`);
+    process.exit(2);
+  }
   if (endOfDay) d.setHours(23, 59, 59, 999);
   else d.setHours(0, 0, 0, 0);
   return d;
@@ -108,6 +118,13 @@ async function main(): Promise<void> {
         d.setHours(0, 0, 0, 0);
         return d;
       })();
+
+  if (since.getTime() > until.getTime()) {
+    process.stderr.write(
+      `Error: --since (${values.since ?? "auto"}) is after --until (${values.until ?? "today"})\n`,
+    );
+    process.exit(2);
+  }
 
   const result = await parseClaudeProjects({
     claudeDir: values["claude-dir"],
