@@ -1,0 +1,52 @@
+{
+  "name": "cc-grass",
+  "version": "0.1.0",
+  "description": "GitHub-style contribution grass SVG generator for Claude Code usage. Reads ~/.claude/projects/**/*.jsonl and renders an orange grass graph for your README.",
+  "type": "module",
+  "bin": {
+    "cc-grass": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && chmod +x dist/cli.js",
+    "prepublishOnly": "npm run build",
+    "test": "tsc --noEmit && node --test --import tsx tests/*.test.ts",
+    "dev": "tsx src/cli.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code",
+    "github",
+    "contribution",
+    "grass",
+    "svg",
+    "readme",
+    "profile",
+    "stats"
+  ],
+  "author": "chuqk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chuqk/cc-grass.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chuqk/cc-grass/issues"
+  },
+  "homepage": "https://github.com/chuqk/cc-grass#readme",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

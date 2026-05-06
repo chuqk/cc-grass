@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+
+# Local-only files
+bashboard.yml
+*.local
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Generated samples (don't commit personal stats)
+sample.svg
+sample.html
+out.svg
+out.html
+!examples/sample.svg
