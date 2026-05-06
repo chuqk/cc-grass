@@ -8,6 +8,10 @@
   <img src="./examples/sample.svg" alt="cc-grass example" width="760">
 </p>
 
+<p align="center">
+  <a href="https://chuqk.github.io/cc-grass/">▶ インタラクティブ版（ホバーで日別 token 数）</a>
+</p>
+
 ## なにこれ
 
 Claude Code の `/usage > Stats` には既に GitHub 風の草が出ているけど、それはターミナルの中でしか見られない。**cc-grass** は同じデータを読んで、GitHub の contribution graph と寸分違わぬレイアウトの SVG を吐く。色だけオレンジ。これを GitHub プロフィール README に貼る。

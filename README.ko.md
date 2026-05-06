@@ -8,6 +8,10 @@
   <img src="./examples/sample.svg" alt="cc-grass example" width="760">
 </p>
 
+<p align="center">
+  <a href="https://chuqk.github.io/cc-grass/">▶ 인터랙티브 버전 (hover로 일별 token 수 확인)</a>
+</p>
+
 ## 이게 뭐죠
 
 Claude Code의 `/usage > Stats` 화면에는 이미 GitHub 스타일 잔디 그래프가 있지만, 터미널 안에 갇혀 있죠. **cc-grass**는 같은 데이터를 읽어서 GitHub contribution graph와 픽셀 단위로 똑같은 레이아웃의 SVG로 뽑아냅니다. 색깔만 오렌지. GitHub 프로필 README, 포트폴리오 사이트, 어디든 붙이세요.

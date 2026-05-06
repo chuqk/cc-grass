@@ -8,6 +8,10 @@
   <img src="./examples/sample.svg" alt="cc-grass example" width="760">
 </p>
 
+<p align="center">
+  <a href="https://chuqk.github.io/cc-grass/">▶ Interactive version (with hover tooltips)</a>
+</p>
+
 ## What is this?
 
 Claude Code already shows you a contribution graph in `/usage > Stats` — but it stays in your terminal. **cc-grass** turns that same data into a stand-alone SVG with the exact GitHub contribution graph layout, just with the grass dyed orange. Drop it into your GitHub profile README, your portfolio, anywhere.

@@ -8,6 +8,10 @@
   <img src="./examples/sample.svg" alt="cc-grass example" width="760">
 </p>
 
+<p align="center">
+  <a href="https://chuqk.github.io/cc-grass/">▶ 交互版本（hover 查看每日 token 数）</a>
+</p>
+
 ## 这是什么
 
 Claude Code 的 `/usage > Stats` 里其实已经有一张贡献图了，但它只活在终端里。**cc-grass** 用同一份数据画一张和 GitHub 贡献图像素级一致的 SVG，颜色换成橙色，让你贴到 GitHub profile README、个人主页、随便哪儿。
