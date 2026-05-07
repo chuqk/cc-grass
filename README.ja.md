@@ -105,12 +105,18 @@ GitHub Actions の `workflow_dispatch` を手元から叩く方式でも、profi
 ```ts
 import { parseClaudeProjects, renderSvg } from "cc-grass";
 
+// CLI のデフォルトと同じ：until の 52 週前の日曜
+const until = new Date();
+const since = new Date(until);
+since.setHours(0, 0, 0, 0);
+since.setDate(since.getDate() - since.getDay() - 364);
+
 const data = await parseClaudeProjects({ includeSubagents: false });
 const svg = renderSvg({
   buckets: data.buckets,
   metric: "tokens",
-  since: new Date(Date.now() - 364 * 86_400_000),
-  until: new Date(),
+  since,
+  until,
   total: data.total,
 });
 console.log(svg);

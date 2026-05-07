@@ -105,12 +105,18 @@ cc-grass 故意不内置调度器，自己挑顺手的方式：
 ```ts
 import { parseClaudeProjects, renderSvg } from "cc-grass";
 
+// 与 CLI 默认值一致：until 所在周的 52 周前周日
+const until = new Date();
+const since = new Date(until);
+since.setHours(0, 0, 0, 0);
+since.setDate(since.getDate() - since.getDay() - 364);
+
 const data = await parseClaudeProjects({ includeSubagents: false });
 const svg = renderSvg({
   buckets: data.buckets,
   metric: "tokens",
-  since: new Date(Date.now() - 364 * 86_400_000),
-  until: new Date(),
+  since,
+  until,
   total: data.total,
 });
 console.log(svg);

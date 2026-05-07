@@ -105,12 +105,18 @@ GitHub Actions의 `workflow_dispatch`를 로컬에서 트리거하거나, profil
 ```ts
 import { parseClaudeProjects, renderSvg } from "cc-grass";
 
+// CLI 기본값과 동일: until 기준 52주 전 일요일
+const until = new Date();
+const since = new Date(until);
+since.setHours(0, 0, 0, 0);
+since.setDate(since.getDate() - since.getDay() - 364);
+
 const data = await parseClaudeProjects({ includeSubagents: false });
 const svg = renderSvg({
   buckets: data.buckets,
   metric: "tokens",
-  since: new Date(Date.now() - 364 * 86_400_000),
-  until: new Date(),
+  since,
+  until,
   total: data.total,
 });
 console.log(svg);

@@ -27,7 +27,7 @@ npx cc-grass [options]
 
   --metric prompts|sessions|tokens   default: prompts
   --output <path>                    default: stdout
-  --since <YYYY-MM-DD>               default: 364日前
+  --since <YYYY-MM-DD>               default: --until の 52週前の日曜（GitHub のグリッドと一致）
   --until <YYYY-MM-DD>               default: today
   --theme dark|light                 default: dark
   --header <string>                  default: "X contributions in the last year"
