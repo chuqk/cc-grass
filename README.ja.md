@@ -49,7 +49,7 @@ README に貼る:
 |---|---|---|
 | `--metric <prompts\|sessions\|tokens>` | `tokens` | 何を 1 日あたりカウントするか |
 | `--output <path>`, `-o` | stdout | ファイル出力 |
-| `--since <YYYY-MM-DD>` | 364 日前 | 期間の始め（ローカル時刻） |
+| `--since <YYYY-MM-DD>` | `--until` の 52 週前の日曜 | 期間の始め（ローカル時刻、GitHub のグリッドと一致） |
 | `--until <YYYY-MM-DD>` | 今日 | 期間の終わり（含む） |
 | `--theme <dark\|light>` | `dark` | テーマ |
 | `--header <string>` | 自動 | ヘッダ文言を上書き |

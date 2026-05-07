@@ -18,7 +18,7 @@ Usage:
 Options:
   --metric <prompts|sessions|tokens>   What to count (default: tokens)
   --output <path>, -o <path>           Write to file instead of stdout
-  --since <YYYY-MM-DD>                 Start date (default: 364 days ago)
+  --since <YYYY-MM-DD>                 Start date (default: Sunday 52 weeks before --until)
   --until <YYYY-MM-DD>                 End date inclusive (default: today)
   --theme <dark|light>                 Color theme (default: dark)
   --header <string>                    Override header text
@@ -60,6 +60,16 @@ function isMetric(s: string | undefined): s is Metric {
 
 function isTheme(s: string | undefined): s is Theme {
   return s === "dark" || s === "light";
+}
+
+// Mirrors GitHub's contribution graph: the grid starts on the Sunday that
+// belongs to the week 52 weeks before `until`, so the chart always shows
+// exactly 53 columns regardless of which weekday `until` lands on.
+export function defaultSinceFor(until: Date): Date {
+  const d = new Date(until);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay() - 364);
+  return d;
 }
 
 async function main(): Promise<void> {
@@ -112,12 +122,7 @@ async function main(): Promise<void> {
   const until = values.until ? parseDateOrExit(values.until, true) : today;
   const since = values.since
     ? parseDateOrExit(values.since, false)
-    : (() => {
-        const d = new Date(until);
-        d.setDate(d.getDate() - 364);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      })();
+    : defaultSinceFor(until);
 
   if (since.getTime() > until.getTime()) {
     process.stderr.write(

@@ -49,7 +49,7 @@ npx cc-grass --html --output grass.html
 |---|---|---|
 | `--metric <prompts\|sessions\|tokens>` | `tokens` | 每天统计什么 |
 | `--output <path>`, `-o` | stdout | 输出到文件 |
-| `--since <YYYY-MM-DD>` | 364 天前 | 起始日期（本地时区） |
+| `--since <YYYY-MM-DD>` | `--until` 所在周的 52 周前周日 | 起始日期（本地时区，对齐 GitHub 草图） |
 | `--until <YYYY-MM-DD>` | 今天 | 结束日期（含当天） |
 | `--theme <dark\|light>` | `dark` | 主题 |
 | `--header <string>` | 自动 | 覆盖标题文字 |

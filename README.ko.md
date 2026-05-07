@@ -49,7 +49,7 @@ README에 붙이기:
 |---|---|---|
 | `--metric <prompts\|sessions\|tokens>` | `tokens` | 하루치로 무엇을 셀지 |
 | `--output <path>`, `-o` | stdout | 파일로 저장 |
-| `--since <YYYY-MM-DD>` | 364일 전 | 시작 날짜 (로컬 시간) |
+| `--since <YYYY-MM-DD>` | `--until` 기준 52주 전 일요일 | 시작 날짜 (로컬 시간, GitHub 그리드와 동일) |
 | `--until <YYYY-MM-DD>` | 오늘 | 끝 날짜 (포함) |
 | `--theme <dark\|light>` | `dark` | 테마 |
 | `--header <string>` | 자동 | 헤더 텍스트 덮어쓰기 |

@@ -49,7 +49,7 @@ Then paste into your README:
 |---|---|---|
 | `--metric <prompts\|sessions\|tokens>` | `tokens` | What to count per day |
 | `--output <path>`, `-o` | stdout | Write to a file instead of stdout |
-| `--since <YYYY-MM-DD>` | 364 days ago | Range start (local time) |
+| `--since <YYYY-MM-DD>` | Sunday 52 weeks before `--until` | Range start (local time, mirrors GitHub's grid) |
 | `--until <YYYY-MM-DD>` | today | Range end, inclusive |
 | `--theme <dark\|light>` | `dark` | Color theme |
 | `--header <string>` | auto | Override the headline (`34.8m tokens in the last year`) |
