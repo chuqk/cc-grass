@@ -74,7 +74,8 @@ ${chartJs()}
     padding: 24px;
     box-sizing: border-box;
   }
-  .cc-grass-wrap { max-width: 100%; overflow-x: auto; }
+  .cc-grass-wrap, #cc-chart { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .cc-grass-wrap::-webkit-scrollbar, #cc-chart::-webkit-scrollbar { display: none; }
   .cc-grass-wrap svg rect[data-date]:hover {
     stroke: ${theme === "dark" ? "#ffffff" : "#1f2328"};
     stroke-width: 1;
@@ -89,6 +90,11 @@ ${chartJs()}
 ${svgContent}
 </div>
 ${chartSection}
+<script>
+document.querySelectorAll('.cc-grass-wrap, #cc-chart').forEach(function(el){
+  el.scrollLeft = el.scrollWidth;
+});
+</script>
 </body>
 </html>
 `;
