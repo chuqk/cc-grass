@@ -94,6 +94,7 @@ ${chartJs()}
     stroke-width: 1;
     cursor: default;
   }
+  #cc-grass-scroll > svg > text:first-of-type { display: none; }
   .cc-scroll svg rect[data-week] { cursor: default; }
   .cc-scroll svg rect[data-week]:hover { opacity: 0.85; }
   .cc-legend {
