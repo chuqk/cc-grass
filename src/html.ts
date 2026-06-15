@@ -37,6 +37,7 @@ export function renderHtml(svgContent: string, opts: HtmlOptions = {}): string {
   const theme = opts.theme ?? "dark";
   const bg = theme === "dark" ? "#0d1117" : "#ffffff";
   const fg = theme === "dark" ? "#c9d1d9" : "#1f2328";
+  const border = theme === "dark" ? "#30363d" : "#d0d7de";
   const chartData = opts.chartData;
 
   const chartSince = opts.chartSince ?? "";
@@ -44,7 +45,7 @@ export function renderHtml(svgContent: string, opts: HtmlOptions = {}): string {
 
   const chartSection =
     chartData && chartData.length > 0
-      ? `<div id="cc-chart" style="max-width:100%;overflow-x:auto;margin-top:32px"></div>
+      ? `<div id="cc-chart" style="max-width:100%;margin-top:32px"></div>
 <script>
 window.__CC_CHART=${JSON.stringify(chartData)};
 window.__CC_THEME="${theme}";
@@ -74,26 +75,71 @@ ${chartJs()}
     padding: 24px;
     box-sizing: border-box;
   }
-  .cc-grass-wrap, #cc-chart { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-  .cc-grass-wrap::-webkit-scrollbar, #cc-chart::-webkit-scrollbar { display: none; }
-  .cc-grass-wrap svg rect[data-date]:hover {
+  .cc-section { max-width: 100%; }
+  .cc-section-title { font-size: 14px; color: ${fg}; margin-bottom: 8px; }
+  .cc-frame {
+    border: 1px solid ${border};
+    border-radius: 6px;
+    overflow: hidden;
+    background: ${bg};
+  }
+  .cc-scroll {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cc-scroll::-webkit-scrollbar { display: none; }
+  .cc-scroll svg rect[data-date]:hover {
     stroke: ${theme === "dark" ? "#ffffff" : "#1f2328"};
     stroke-width: 1;
     cursor: default;
   }
-  #cc-chart svg rect[data-week] { cursor: default; }
-  #cc-chart svg rect[data-week]:hover { opacity: 0.85; }
+  .cc-scroll svg rect[data-week] { cursor: default; }
+  .cc-scroll svg rect[data-week]:hover { opacity: 0.85; }
+  .cc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 14px;
+    padding: 10px 16px;
+    border-top: 1px solid ${theme === "dark" ? "#21262d" : "#d0d7de"};
+    font-size: 11px;
+    color: ${theme === "dark" ? "#7d8590" : "#57606a"};
+  }
+  .cc-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cc-legend i {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    display: inline-block;
+    font-style: normal;
+  }
 </style>
 </head>
 <body>
-<div class="cc-grass-wrap">
+<div class="cc-section" id="cc-grass-section">
+  <div class="cc-section-title" id="cc-grass-title"></div>
+  <div class="cc-frame">
+    <div class="cc-scroll" id="cc-grass-scroll">
 ${svgContent}
+    </div>
+  </div>
 </div>
 ${chartSection}
 <script>
-document.querySelectorAll('.cc-grass-wrap, #cc-chart').forEach(function(el){
-  el.scrollLeft = el.scrollWidth;
-});
+(function(){
+  var svg=document.querySelector('#cc-grass-scroll svg');
+  if(!svg)return;
+  var t=svg.querySelector('text');
+  if(t)document.getElementById('cc-grass-title').textContent=t.textContent;
+  document.querySelectorAll('.cc-scroll').forEach(function(el){
+    el.scrollLeft=el.scrollWidth;
+  });
+})();
 </script>
 </body>
 </html>
@@ -101,8 +147,6 @@ document.querySelectorAll('.cc-grass-wrap, #cc-chart').forEach(function(el){
 }
 
 function chartJs(): string {
-  // The chart SVG mirrors the grass SVG layout (constants from svg.ts)
-  // so bars align pixel-perfectly with the heatmap cells above.
   return `(function(){
 var D=window.__CC_CHART;
 if(!D||!D.length)return;
@@ -118,7 +162,7 @@ var C={
   cellStroke:isDark?'rgba(255,255,255,0.05)':'rgba(27,31,36,0.06)'
 };
 var CELL=10,GAP=3,STRIDE=13;
-var BPAD=16,OPAD=8,LPAD=28,HEADER_H=32;
+var BPAD=16,OPAD=8,LPAD=28;
 var gridLeft=OPAD+BPAD+LPAD;
 var PAL={
   'Fable 5':'#f9a8d4','Fable 5.1':'#f472b6',
@@ -177,42 +221,22 @@ var models=Object.keys(totals).sort(function(a,b){
   if(fa!==fb)return fa-fb;
   return mver(b)-mver(a);
 });
-var gs=document.querySelector('.cc-grass-wrap svg');
+var gs=document.querySelector('#cc-grass-scroll svg');
 var svgW=gs?+gs.getAttribute('width'):762;
 var gridRight=gridLeft+weeks.length*STRIDE-GAP;
-var legItems=models.map(function(m){
-  var label=m+' ('+fmt(totals[m])+')';
-  return{m:m,label:label,w:CELL+5+label.length*6.2+16};
-});
-var legAvailW=gridRight-gridLeft+GAP;
-var legRowsArr=[],curRow=[],curW=0;
-legItems.forEach(function(item){
-  if(curW+item.w>legAvailW&&curRow.length>0){legRowsArr.push({items:curRow,w:curW-16});curRow=[];curW=0;}
-  curRow.push(item);curW+=item.w;
-});
-if(curRow.length>0)legRowsArr.push({items:curRow,w:curW-16});
 var CHART_H=200;
-var barTop=OPAD+HEADER_H+BPAD+6;
+var barTop=BPAD;
 var barBot=barTop+CHART_H;
 var monthY=barBot+16;
-var legY=monthY+20;
-var legRowH=18;
-var borderBot=legY+legRowsArr.length*legRowH+2;
-var totalH=borderBot+OPAD;
-var borderX=OPAD,borderY2=OPAD+HEADER_H;
-var borderW=svgW-2*OPAD,borderH=borderBot-borderY2;
+var svgH=monthY+10;
 var maxS=0;
 weeks.forEach(function(w){var s=0;Object.keys(w.models).forEach(function(m){s+=w.models[m];});if(s>maxS)maxS=s;});
 if(!maxS)return;
 var ns='http://www.w3.org/2000/svg';
 function el(tag,a){var e=document.createElementNS(ns,tag);Object.keys(a).forEach(function(k){e.setAttribute(k,String(a[k]));});return e;}
 var FONT="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
-var svg=el('svg',{width:svgW,height:totalH,viewBox:'0 0 '+svgW+' '+totalH,'font-family':FONT});
-svg.appendChild(el('rect',{width:svgW,height:totalH,fill:C.bg}));
-svg.appendChild(el('rect',{x:borderX,y:borderY2,width:borderW,height:borderH,rx:6,ry:6,fill:C.bg,stroke:C.border}));
-var titleEl=el('text',{x:OPAD,y:OPAD+18,fill:C.bold,'font-size':'14','font-weight':'400'});
-titleEl.textContent='Token usage by model';
-svg.appendChild(titleEl);
+var svg=el('svg',{width:svgW,height:svgH,viewBox:'0 0 '+svgW+' '+svgH,'font-family':FONT});
+svg.appendChild(el('rect',{width:svgW,height:svgH,fill:C.bg}));
 var ticks=4;
 for(var i=0;i<=ticks;i++){
   var v=(maxS/ticks)*i;
@@ -236,20 +260,6 @@ weeks.forEach(function(w,idx){
     var rect=el('rect',{x:x,y:yPos,width:CELL,height:h,fill:gc(model),rx:'1','data-week':String(idx),'data-model':model});
     svg.appendChild(rect);
   });
-});
-var legGs=[];
-var ly=legY;
-legRowsArr.forEach(function(row){
-  var g=document.createElementNS(ns,'g');
-  var lx=gridLeft;
-  row.items.forEach(function(item){
-    g.appendChild(el('rect',{x:lx,y:ly-8,width:CELL,height:CELL,rx:2,fill:gc(item.m),stroke:C.cellStroke}));
-    var lt=el('text',{x:lx+CELL+5,y:ly+1,fill:C.text,'font-size':'11'});
-    lt.textContent=item.label;g.appendChild(lt);
-    lx+=item.w;
-  });
-  svg.appendChild(g);legGs.push(g);
-  ly+=legRowH;
 });
 var tip=document.createElement('div');
 tip.style.cssText='position:fixed;display:none;pointer-events:none;background:'+C.tipBg+';border:1px solid '+C.tipBorder+';border-radius:6px;padding:8px 12px;font-size:12px;color:'+C.bold+';z-index:9999;white-space:pre;line-height:1.6;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
@@ -278,11 +288,32 @@ svg.addEventListener('mousemove',function(e){
   }
 });
 svg.addEventListener('mouseleave',function(){tip.style.display='none';});
-document.getElementById('cc-chart').appendChild(svg);
-legGs.forEach(function(g){
-  var bb=g.getBBox();
-  var dx=Math.round((legAvailW-(bb.width-gridLeft+bb.x))/2);
-  if(dx>0)g.setAttribute('transform','translate('+dx+',0)');
+var ctr=document.getElementById('cc-chart');
+var section=document.createElement('div');
+section.className='cc-section';
+var titleDiv=document.createElement('div');
+titleDiv.className='cc-section-title';
+titleDiv.textContent='Token usage by model';
+section.appendChild(titleDiv);
+var frame=document.createElement('div');
+frame.className='cc-frame';
+var scroll=document.createElement('div');
+scroll.className='cc-scroll';
+scroll.appendChild(svg);
+frame.appendChild(scroll);
+var leg=document.createElement('div');
+leg.className='cc-legend';
+models.forEach(function(m){
+  var span=document.createElement('span');
+  var dot=document.createElement('i');
+  dot.style.background=gc(m);
+  span.appendChild(dot);
+  span.appendChild(document.createTextNode(m+' ('+fmt(totals[m])+')'));
+  leg.appendChild(span);
 });
+frame.appendChild(leg);
+section.appendChild(frame);
+ctr.appendChild(section);
+scroll.scrollLeft=scroll.scrollWidth;
 })();`;
 }
