@@ -83,7 +83,8 @@ npx cc-grass [options]
    - `src/parse.ts` — jsonl → 日別 bucket
    - `src/svg.ts` — bucket → SVG 文字列
    - `src/cli.ts` — 引数 parse、parse() → svg() を繋ぐ
-4. **手始めに**: 自分（chuqk）の `~/.claude/projects` の jsonl を1個サンプルとして読み、`type` フィールドの分布、`usage` の構造を実物で確認してから集計ロジックを書く。推測で書かない。
+4. **手始めに**: 自分の `~/.claude/projects` の jsonl を1個サンプルとして読み、
+   `type` の分布と `usage` の構造を実物で確認してから集計ロジックを書く。推測で書かない。
 5. 最小実装が動いたら `chuqk/chuqk` の README に貼って動作確認。
 6. README × 3言語 + MIT LICENSE + GitHub repo 作成 + 初回 push。
 7. npm publish は最後でいい（`npx --package=github:chuqk/cc-grass cc-grass` で配布前テスト可能）。

@@ -56,6 +56,18 @@ test("parse: since/until filtering", async () => {
   assert.equal(r.total.prompts, 1);
 });
 
+test("parse: model tokens are tracked per day", async () => {
+  const r = await parseClaudeProjects({
+    claudeDir: FIXTURE,
+    includeSubagents: false,
+  });
+  const day1 = r.buckets.get("2026-05-01");
+  const day2 = r.buckets.get("2026-05-02");
+  assert.equal(day1?.modelTokens.get("claude-opus-4-8"), 150);
+  assert.equal(day2?.modelTokens.get("claude-sonnet-4-6"), 280);
+  assert.equal(day1?.modelTokens.has("claude-sonnet-4-6"), false);
+});
+
 test("parse: missing dir returns empty result", async () => {
   const r = await parseClaudeProjects({
     claudeDir: "/nonexistent/path/xyzzy",

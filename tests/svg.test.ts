@@ -63,6 +63,7 @@ test("svg: tooltip in <title> for in-range cells", () => {
     tokens: 1234,
     prompts: 5,
     sessionIds: new Set(["x"]),
+    modelTokens: new Map([["claude-opus-4-8", 1234]]),
   });
   const out = renderSvg({
     buckets,

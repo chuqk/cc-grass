@@ -14,6 +14,7 @@ export interface DailyBucket {
   prompts: number;
   tokens: number;
   sessionIds: Set<string>;
+  modelTokens: Map<string, number>;
 }
 
 export interface ParseTotals {
@@ -35,6 +36,7 @@ interface JsonlEntry {
   timestamp?: string;
   message?: {
     role?: string;
+    model?: string;
     content?: unknown;
     usage?: {
       input_tokens?: number;
@@ -139,7 +141,7 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
 
       let bucket = buckets.get(date);
       if (!bucket) {
-        bucket = { date, prompts: 0, tokens: 0, sessionIds: new Set() };
+        bucket = { date, prompts: 0, tokens: 0, sessionIds: new Set(), modelTokens: new Map() };
         buckets.set(date, bucket);
       }
 
@@ -147,6 +149,10 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
       if (tk > 0) {
         bucket.tokens += tk;
         totalTokens += tk;
+        const model = entry.message?.model;
+        if (model) {
+          bucket.modelTokens.set(model, (bucket.modelTokens.get(model) ?? 0) + tk);
+        }
       }
 
       if (isHumanUserPrompt(entry)) {

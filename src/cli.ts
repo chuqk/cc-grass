@@ -148,7 +148,28 @@ async function main(): Promise<void> {
     total: result.total,
   });
 
-  const out = values.html ? renderHtml(svg, { theme: values.theme, title: "cc-grass" }) : svg;
+  const chartData = values.html
+    ? [...result.buckets.values()]
+        .filter((b) => b.modelTokens.size > 0)
+        .map((b) => ({
+          date: b.date,
+          models: Object.fromEntries(b.modelTokens),
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+    : undefined;
+
+  const fmtDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const out = values.html
+    ? renderHtml(svg, {
+        theme: values.theme,
+        title: "cc-grass",
+        chartData,
+        chartSince: fmtDate(since),
+        chartUntil: fmtDate(until),
+      })
+    : svg;
 
   if (values.output) {
     writeFileSync(values.output, out, "utf8");
