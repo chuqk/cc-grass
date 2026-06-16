@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { parseClaudeProjects } from "./parse.js";
 import { renderSvg, type Metric, type Theme } from "./svg.js";
 import { renderHtml } from "./html.js";
+import { estimateCost } from "./pricing.js";
 
 const PKG = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -23,7 +24,8 @@ Options:
   --theme <dark|light>                 Color theme (default: dark)
   --header <string>                    Override header text
   --claude-dir <path>                  Override ~/.claude location
-  --include-subagents                  Also count subagent jsonl files (default: off, matches /usage)
+  --include-subagents                  Count subagent jsonl files (default: on)
+  --no-include-subagents               Exclude subagent jsonl files
   --html                               Output HTML page (with hover tooltips)
   --version, -v                        Print version and exit
   --help, -h                           Show this help
@@ -84,13 +86,14 @@ async function main(): Promise<void> {
         theme: { type: "string", default: "dark" },
         header: { type: "string" },
         "claude-dir": { type: "string" },
-        "include-subagents": { type: "boolean", default: false },
+        "include-subagents": { type: "boolean", default: true },
         html: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", short: "v", default: false },
       },
       strict: true,
       allowPositionals: false,
+      allowNegative: true,
     });
   } catch (err) {
     process.stderr.write(`${(err as Error).message}\n\n${HELP}`);
@@ -151,10 +154,18 @@ async function main(): Promise<void> {
   const chartData = values.html
     ? [...result.buckets.values()]
         .filter((b) => b.modelTokens.size > 0)
-        .map((b) => ({
-          date: b.date,
-          models: Object.fromEntries(b.modelTokens),
-        }))
+        .map((b) => {
+          const costs: Record<string, number> = {};
+          for (const [model, bd] of b.modelBreakdown) {
+            const c = estimateCost(model, bd);
+            if (c > 0) costs[model] = c;
+          }
+          return {
+            date: b.date,
+            models: Object.fromEntries(b.modelTokens),
+            costs,
+          };
+        })
         .sort((a, b) => a.date.localeCompare(b.date))
     : undefined;
 

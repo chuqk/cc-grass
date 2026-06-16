@@ -11,3 +11,5 @@ export { renderHtml } from "./html.js";
 export type { HtmlOptions } from "./html.js";
 export { computeThresholds, levelOf } from "./levels.js";
 export type { Level, LevelThresholds } from "./levels.js";
+export { getPricing, estimateCost } from "./pricing.js";
+export type { ModelPricing, TokenBreakdown } from "./pricing.js";

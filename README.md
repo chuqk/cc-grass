@@ -22,7 +22,7 @@ Claude Code already shows you a contribution graph in `/usage > Stats` — but i
 - **Cross-platform.** Works on macOS, Linux, Windows. Node ≥ 18.
 - **Just an SVG.** No daemons, no schedulers, no GitHub Actions bundled in. You decide how often to run it.
 - **Pixel-perfect GitHub clone.** 10×10 cells, 3px gap, rounded corners, Mon/Wed/Fri labels, monthly headers, *Less / More* legend.
-- **Matches `/usage`.** Token counting follows the same rule (`input + output`, no cache, no subagents) so the headline number lines up with what Claude Code shows you.
+- **All billable tokens.** Counts everything the API would charge for: `input`, `output`, `cache_creation`, and `cache_read` — including subagents by default.
 
 ## Quick start
 
@@ -54,7 +54,7 @@ Then paste into your README:
 | `--theme <dark\|light>` | `dark` | Color theme |
 | `--header <string>` | auto | Override the headline (`34.8m tokens in the last year`) |
 | `--claude-dir <path>` | `~/.claude` | Override the Claude Code data directory |
-| `--include-subagents` | off | Also count subagent jsonl files (changes the total) |
+| `--include-subagents` | on | Count subagent jsonl files (use `--no-include-subagents` to exclude) |
 | `--html` | off | Wrap the SVG in a minimal HTML page so hover tooltips work |
 | `--version`, `-v` | — | Print version |
 | `--help`, `-h` | — | Show help |
@@ -71,8 +71,8 @@ npx cc-grass --metric prompts -o prompts.svg
 # light theme
 npx cc-grass --theme light -o grass-light.svg
 
-# include subagents (will inflate the number)
-npx cc-grass --include-subagents -o grass-with-subs.svg
+# exclude subagents (matches Claude Code /usage numbers)
+npx cc-grass --no-include-subagents -o grass-main-only.svg
 ```
 
 ## Hover tooltips and the GitHub README limitation
@@ -96,7 +96,9 @@ Or wire it to a `gh workflow_dispatch` you trigger from your laptop, or just run
 
 ## Token math
 
-`tokens` per day = sum of `message.usage.input_tokens` + `message.usage.output_tokens` for entries with `timestamp` falling on that day (local time). This matches the headline number Claude Code shows in `/usage > Stats > Overview`. Cache reads and cache creation are excluded by default; passing `--include-subagents` adds the subagent jsonl files but that's the only way to deviate from the `/usage` definition.
+`tokens` per day = sum of all four `usage` fields per entry: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`. This counts every token the API would bill for. Subagent jsonl files are included by default; pass `--no-include-subagents` to exclude them (this matches the number Claude Code shows in `/usage`).
+
+The `--html` output includes an interactive bar chart with estimated API cost per model in the tooltip. Costs are calculated using each model's published per-MTok rates, applied to the four token categories at their respective prices (cache reads are cheaper, cache writes are more expensive than base input).
 
 For the curious, `--metric prompts` counts only `type:"user"` entries whose `message.content` is a real human prompt (not a tool result), and `--metric sessions` counts each jsonl file once per day it touched.
 
@@ -111,7 +113,7 @@ const since = new Date(until);
 since.setHours(0, 0, 0, 0);
 since.setDate(since.getDate() - since.getDay() - 364);
 
-const data = await parseClaudeProjects({ includeSubagents: false });
+const data = await parseClaudeProjects();
 const svg = renderSvg({
   buckets: data.buckets,
   metric: "tokens",

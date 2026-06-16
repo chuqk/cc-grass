@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import type { TokenBreakdown } from "./pricing.js";
 
 export interface ParseOptions {
   claudeDir?: string;
@@ -15,6 +16,7 @@ export interface DailyBucket {
   tokens: number;
   sessionIds: Set<string>;
   modelTokens: Map<string, number>;
+  modelBreakdown: Map<string, TokenBreakdown>;
 }
 
 export interface ParseTotals {
@@ -64,7 +66,12 @@ function isHumanUserPrompt(entry: JsonlEntry): boolean {
 function tokensOf(entry: JsonlEntry): number {
   const u = entry.message?.usage;
   if (!u) return 0;
-  return (u.input_tokens ?? 0) + (u.output_tokens ?? 0);
+  return (
+    (u.input_tokens ?? 0) +
+    (u.output_tokens ?? 0) +
+    (u.cache_creation_input_tokens ?? 0) +
+    (u.cache_read_input_tokens ?? 0)
+  );
 }
 
 function toLocalDateStr(iso: string): string | null {
@@ -100,7 +107,7 @@ async function walkJsonl(dir: string, includeSubagents: boolean): Promise<string
 export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<ParseResult> {
   const claudeDir = opts.claudeDir ?? join(homedir(), ".claude");
   const projectsDir = join(claudeDir, "projects");
-  const includeSubagents = opts.includeSubagents ?? false;
+  const includeSubagents = opts.includeSubagents ?? true;
 
   const sinceMs = opts.since?.getTime();
   const untilMs = opts.until?.getTime();
@@ -141,7 +148,7 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
 
       let bucket = buckets.get(date);
       if (!bucket) {
-        bucket = { date, prompts: 0, tokens: 0, sessionIds: new Set(), modelTokens: new Map() };
+        bucket = { date, prompts: 0, tokens: 0, sessionIds: new Set(), modelTokens: new Map(), modelBreakdown: new Map() };
         buckets.set(date, bucket);
       }
 
@@ -152,6 +159,16 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
         const model = entry.message?.model;
         if (model) {
           bucket.modelTokens.set(model, (bucket.modelTokens.get(model) ?? 0) + tk);
+          const u = entry.message!.usage!;
+          let bd = bucket.modelBreakdown.get(model);
+          if (!bd) {
+            bd = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+            bucket.modelBreakdown.set(model, bd);
+          }
+          bd.input += u.input_tokens ?? 0;
+          bd.output += u.output_tokens ?? 0;
+          bd.cacheWrite += u.cache_creation_input_tokens ?? 0;
+          bd.cacheRead += u.cache_read_input_tokens ?? 0;
         }
       }
 

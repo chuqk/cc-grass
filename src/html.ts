@@ -3,6 +3,7 @@ import type { Theme } from "./svg.js";
 export interface ChartDataEntry {
   date: string;
   models: Record<string, number>;
+  costs?: Record<string, number>;
 }
 
 export interface HtmlOptions {
@@ -195,15 +196,19 @@ function fmt(n){
   if(n<1e9)return(n/1e6).toFixed(1).replace(/\\.0$/,'')+'m';
   return(n/1e9).toFixed(1).replace(/\\.0$/,'')+'b';
 }
-var wm={};
+var wm={},wcm={};
 D.forEach(function(d){
   var dt=new Date(d.date+'T12:00:00');
   var sun=new Date(dt);sun.setDate(dt.getDate()-dt.getDay());
   var k=sun.toISOString().slice(0,10);
   if(!wm[k])wm[k]={};
+  if(!wcm[k])wcm[k]={};
   Object.keys(d.models).forEach(function(raw){
     var n=norm(raw);wm[k][n]=(wm[k][n]||0)+d.models[raw];
   });
+  if(d.costs){Object.keys(d.costs).forEach(function(raw){
+    var n=norm(raw);wcm[k][n]=(wcm[k][n]||0)+d.costs[raw];
+  });}
 });
 var allWeekKeys=[];
 if(window.__CC_SINCE&&window.__CC_UNTIL){
@@ -214,7 +219,7 @@ if(window.__CC_SINCE&&window.__CC_UNTIL){
 }else{
   allWeekKeys=Object.keys(wm).sort();
 }
-var weeks=allWeekKeys.map(function(k){return{week:k,models:wm[k]||{}};});
+var weeks=allWeekKeys.map(function(k){return{week:k,models:wm[k]||{},costs:wcm[k]||{}};});
 if(!weeks.length)return;
 var totals={};
 weeks.forEach(function(w){
@@ -279,12 +284,16 @@ svg.addEventListener('mousemove',function(e){
     var hm=tgt.getAttribute('data-model');
     var w=weeks[wi];if(!w)return;
     var total=0;Object.keys(w.models).forEach(function(m){total+=w.models[m];});
-    var lines=[w.week+' \\u2014 '+fmt(total)+' total'];
+    var totalCost=0;Object.keys(w.costs).forEach(function(m){totalCost+=w.costs[m];});
+    var costStr=totalCost>0?' \\u2248 $'+totalCost.toFixed(2):'';
+    var lines=[w.week+' \\u2014 '+fmt(total)+' tokens'+costStr];
     models.forEach(function(m){
       if(!w.models[m])return;
       var pct=Math.round(w.models[m]/total*100);
+      var mc=w.costs[m]||0;
+      var mcStr=mc>0?' $'+mc.toFixed(2):'';
       var pre=m===hm?'\\u25b8 ':'  ';
-      lines.push(pre+m+': '+fmt(w.models[m])+' ('+pct+'%)');
+      lines.push(pre+m+': '+fmt(w.models[m])+' ('+pct+'%)'+mcStr);
     });
     tip.textContent=lines.join('\\n');
     tip.style.display='block';
