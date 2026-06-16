@@ -80,15 +80,17 @@ ${chartJs()}
   .cc-frame {
     border: 1px solid ${border};
     border-radius: 6px;
-    overflow: hidden;
     background: ${bg};
   }
-  .cc-scroll {
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+  @media (max-width: 800px) {
+    .cc-frame { overflow: hidden; }
+    .cc-scroll {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cc-scroll::-webkit-scrollbar { display: none; }
   }
-  .cc-scroll::-webkit-scrollbar { display: none; }
   .cc-scroll svg rect[data-date]:hover {
     stroke: ${theme === "dark" ? "#ffffff" : "#1f2328"};
     stroke-width: 1;
