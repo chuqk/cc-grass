@@ -72,7 +72,7 @@ test("svg: tooltip in <title> for in-range cells", () => {
     until,
     total: { tokens: 1234, prompts: 5, sessions: 1 },
   });
-  assert.ok(out.includes("1,234 tokens on May 3rd."));
+  assert.ok(out.includes("1.2k tokens on May 3rd."));
 });
 
 test("formatMetricValue: tokens use k/m/b suffix", () => {

@@ -157,7 +157,7 @@ function formatTooltip(date: Date, value: number, metric: Metric): string {
   if (value === 0) {
     return `No ${metricLabel(metric)} on ${m} ${d}${ord}.`;
   }
-  const formatted = value.toLocaleString("en-US");
+  const formatted = formatMetricValue(value, metric);
   return `${formatted} ${metricLabel(metric)} on ${m} ${d}${ord}.`;
 }
 
