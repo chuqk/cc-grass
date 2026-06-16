@@ -143,7 +143,7 @@ ${chartSection}
   var t=svg.querySelector('text');
   if(t)document.getElementById('cc-grass-title').textContent=t.textContent;
   var gf=document.querySelector('#cc-grass-section .cc-frame');
-  if(gf)gf.style.width=svg.getAttribute('width')+'px';
+  if(gf&&window.innerWidth>800)gf.style.width=svg.getAttribute('width')+'px';
   document.querySelectorAll('.cc-scroll').forEach(function(el){
     el.scrollLeft=el.scrollWidth;
   });
@@ -322,7 +322,7 @@ models.forEach(function(m){
 frame.appendChild(leg);
 section.appendChild(frame);
 ctr.appendChild(section);
-frame.style.width=svgW+'px';
+if(window.innerWidth>800)frame.style.width=svgW+'px';
 scroll.scrollLeft=scroll.scrollWidth;
 })();`;
 }
