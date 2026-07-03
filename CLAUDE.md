@@ -40,7 +40,7 @@
 ## 運用
 
 - `scripts/update-pages.sh` が gh-pages を更新 (bashboard cron 10分毎)
-- Pages デプロイは gh-pages ブランチ上の `.github/workflows/pages.yml` が実行 (build_type=workflow、一時エラーは30秒後に1回リトライ)
+- Pages デプロイは gh-pages ブランチ上の `.github/workflows/pages.yml` が実行 (build_type=workflow、計3試行、失敗通知は2 run 連続全滅時のみ)
 - npm publish: `npm version patch && npm publish --access=public && git push --follow-tags`
 
 ## やらないこと
