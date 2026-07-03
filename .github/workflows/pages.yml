@@ -1,0 +1,39 @@
+name: pages
+
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.retry.outputs.page_url || steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      # "Deployment failed, try again later." 対策: 一時エラーは30秒置いて1回だけ再試行
+      - name: Wait before retry
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 30
+      - name: Retry deploy
+        id: retry
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/deploy-pages@v5
