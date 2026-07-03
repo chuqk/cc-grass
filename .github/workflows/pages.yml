@@ -9,6 +9,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
@@ -19,17 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.retry.outputs.page_url || steps.deploy.outputs.page_url }}
+      url: ${{ steps.retry2.outputs.page_url || steps.retry.outputs.page_url || steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+      # GitHub 側の一時エラー ("Deployment failed, try again later.") 対策: 間隔を広げて計3試行
       - name: Deploy
         id: deploy
         uses: actions/deploy-pages@v5
         continue-on-error: true
-      # "Deployment failed, try again later." 対策: 一時エラーは30秒置いて1回だけ再試行
       - name: Wait before retry
         if: steps.deploy.outcome == 'failure'
         run: sleep 30
@@ -37,3 +38,25 @@ jobs:
         id: retry
         if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - name: Wait before retry 2
+        if: steps.deploy.outcome == 'failure' && steps.retry.outcome == 'failure'
+        run: sleep 90
+      - name: Retry deploy 2
+        id: retry2
+        if: steps.deploy.outcome == 'failure' && steps.retry.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      # 3試行全滅でも単発なら無音で success 終了 (10分後の次 cron が拾って回復する)。
+      # 直前の run も失敗していたときだけ fail = 「サイトが20分以上 stale」の本物アラートに限定
+      - name: Fail only on consecutive failures
+        if: steps.deploy.outcome == 'failure' && steps.retry.outcome == 'failure' && steps.retry2.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prev=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow pages --status completed --limit 1 --json conclusion --jq '.[0].conclusion // empty')
+          if [ "$prev" = "failure" ]; then
+            echo "::error::Two consecutive runs failed - Pages may be stale for 20+ min"
+            exit 1
+          fi
+          echo "All deploy attempts failed, but previous run was ok. Next cron (10 min) will catch up. Staying green."
