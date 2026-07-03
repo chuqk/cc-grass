@@ -40,7 +40,7 @@
 ## 運用
 
 - `scripts/update-pages.sh` が gh-pages を更新 (bashboard cron 10分毎)
-- Pages のデプロイは gh-pages ブランチ上の `.github/workflows/pages.yml` が実行 (build_type=workflow、失敗時30秒後に1回リトライ)。2026-07-04 に legacy ビルドから切替 — GitHub 側の断続的な "Deployment failed, try again later" による failed メール対策
+- Pages デプロイは gh-pages ブランチ上の `.github/workflows/pages.yml` が実行 (build_type=workflow、一時エラーは30秒後に1回リトライ)
 - npm publish: `npm version patch && npm publish --access=public && git push --follow-tags`
 
 ## やらないこと
