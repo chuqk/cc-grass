@@ -176,7 +176,7 @@ var gridLeft=OPAD+BPAD+LPAD;
 var PAL={
   'Fable 5':'#f9a8d4','Fable 5.1':'#f472b6',
   'Opus 4.5':'#ffcb8b','Opus 4.6':'#ff9c47','Opus 4.7':'#f97316','Opus 4.8':'#c2410c',
-  'Sonnet 4.5':'#93c5fd','Sonnet 4.6':'#3b82f6',
+  'Sonnet 4.5':'#93c5fd','Sonnet 4.6':'#3b82f6','Sonnet 5':'#2563eb',
   'Haiku 4.5':'#86efac','Haiku 4.6':'#22c55e',
   'Synthetic':'#4b5563'
 };
