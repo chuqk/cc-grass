@@ -7,7 +7,7 @@ export type {
   CacheStats,
 } from "./parse.js";
 export { defaultCacheDir } from "./cache.js";
-export { renderSvg, formatMetricValue } from "./svg.js";
+export { renderSvg, formatMetricValue, defaultSinceFor } from "./svg.js";
 export type { RenderOptions, Metric, Theme } from "./svg.js";
 export { renderHtml } from "./html.js";
 export type { HtmlOptions } from "./html.js";

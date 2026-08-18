@@ -1,6 +1,16 @@
 import type { DailyBucket, ParseTotals } from "./parse.js";
 import { computeThresholds, levelOf, type Level } from "./levels.js";
 
+// Mirrors GitHub's contribution graph: the grid starts on the Sunday that
+// belongs to the week 52 weeks before `until`, so the chart always shows
+// exactly 53 columns regardless of which weekday `until` lands on.
+export function defaultSinceFor(until: Date): Date {
+  const d = new Date(until);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay() - 364);
+  return d;
+}
+
 export type Metric = "tokens" | "prompts" | "sessions";
 export type Theme = "dark" | "light";
 

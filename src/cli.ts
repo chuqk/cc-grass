@@ -2,7 +2,7 @@
 import { parseArgs } from "node:util";
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseClaudeProjects } from "./parse.js";
-import { renderSvg, type Metric, type Theme } from "./svg.js";
+import { defaultSinceFor, renderSvg, type Metric, type Theme } from "./svg.js";
 import { renderHtml } from "./html.js";
 import { estimateCost } from "./pricing.js";
 
@@ -64,16 +64,6 @@ function isMetric(s: string | undefined): s is Metric {
 
 function isTheme(s: string | undefined): s is Theme {
   return s === "dark" || s === "light";
-}
-
-// Mirrors GitHub's contribution graph: the grid starts on the Sunday that
-// belongs to the week 52 weeks before `until`, so the chart always shows
-// exactly 53 columns regardless of which weekday `until` lands on.
-export function defaultSinceFor(until: Date): Date {
-  const d = new Date(until);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - d.getDay() - 364);
-  return d;
 }
 
 async function main(): Promise<void> {
