@@ -19,6 +19,7 @@
 Claude Code의 `/usage > Stats` 화면에는 이미 GitHub 스타일 잔디 그래프가 있지만, 터미널 안에 갇혀 있죠. **cc-grass**는 같은 데이터를 읽어서 GitHub contribution graph와 픽셀 단위로 똑같은 레이아웃의 SVG로 뽑아냅니다. 색깔만 오렌지. GitHub 프로필 README, 포트폴리오 사이트, 어디든 붙이세요.
 
 - **의존성 0개.** `fs` / `path` / `os`만 사용. `ccusage`도 API 호출도 없음.
+- **재실행이 빠름.** 증분 캐시로 새로 생기거나 변경된 세션 파일만 다시 파싱. 실행 시간이 전체 히스토리가 아니라 오늘의 활동량에 비례 (`--no-cache`로 비활성화).
 - **크로스 플랫폼.** macOS / Linux / Windows, Node ≥ 18.
 - **SVG만 출력.** 데몬도 크론도 GitHub Actions 템플릿도 안 끼워넣음. 실행 빈도는 사용자가 결정.
 - **GitHub 잔디 픽셀 단위 복원.** 10×10 셀, 3px 간격, 라운드 코너, Mon/Wed/Fri 라벨, 월 헤더, *Less / More* 범례.
@@ -55,6 +56,8 @@ README에 붙이기:
 | `--header <string>` | 자동 | 헤더 텍스트 덮어쓰기 |
 | `--claude-dir <path>` | `~/.claude` | Claude Code 데이터 디렉토리 지정 |
 | `--include-subagents` | on | subagent jsonl 도 합산 (`--no-include-subagents`로 제외) |
+| `--no-cache` | 캐시 on | 증분 캐시를 쓰지 않고 매번 전체 파일을 스캔 |
+| `--cache-dir <path>` | `~/.cache/cc-grass` | 캐시 저장 위치 변경 (Windows는 `%LOCALAPPDATA%\cc-grass\Cache`) |
 | `--html` | off | hover tooltip이 작동하는 최소 HTML 페이지로 출력 |
 | `--version`, `-v` | — | 버전 출력 |
 | `--help`, `-h` | — | 도움말 |

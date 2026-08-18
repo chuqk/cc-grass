@@ -3,13 +3,15 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { defaultSinceFor } from "../src/cli.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const CLI = join(__dirname, "..", "dist", "cli.js");
 const FIXTURE = join(__dirname, "fixtures");
+const CACHE_DIR = mkdtempSync(join(tmpdir(), "cc-grass-cli-cache-"));
 const PKG_VERSION = (
   JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8")) as {
     version: string;
@@ -17,9 +19,11 @@ const PKG_VERSION = (
 ).version;
 
 function run(args: string[]) {
-  return spawnSync("node", [CLI, "--claude-dir", FIXTURE, ...args], {
-    encoding: "utf8",
-  });
+  return spawnSync(
+    "node",
+    [CLI, "--claude-dir", FIXTURE, "--cache-dir", CACHE_DIR, ...args],
+    { encoding: "utf8" },
+  );
 }
 
 test("cli: --version matches package.json", () => {
@@ -57,6 +61,30 @@ test("cli: accepts valid date range and writes SVG to stdout", () => {
   assert.equal(r.status, 0);
   assert.match(r.stdout, /^<svg /);
   assert.match(r.stdout, /<\/svg>\s*$/);
+});
+
+test("cli: second run reports cache hits in the summary", () => {
+  const cacheDir = mkdtempSync(join(tmpdir(), "cc-grass-cli-warm-"));
+  const out = join(cacheDir, "grass.svg");
+  const args = ["--claude-dir", FIXTURE, "--cache-dir", cacheDir, "-o", out];
+  const cold = spawnSync("node", [CLI, ...args], { encoding: "utf8" });
+  assert.equal(cold.status, 0);
+  assert.match(cold.stderr, /0 cached \/ 2 parsed/);
+  const warm = spawnSync("node", [CLI, ...args], { encoding: "utf8" });
+  assert.equal(warm.status, 0);
+  assert.match(warm.stderr, /2 cached \/ 0 parsed/);
+});
+
+test("cli: --no-cache omits cache stats from the summary", () => {
+  const cacheDir = mkdtempSync(join(tmpdir(), "cc-grass-cli-nocache-"));
+  const out = join(cacheDir, "grass.svg");
+  const r = spawnSync(
+    "node",
+    [CLI, "--claude-dir", FIXTURE, "--no-cache", "-o", out],
+    { encoding: "utf8" },
+  );
+  assert.equal(r.status, 0);
+  assert.match(r.stderr, /\(2 files, /);
 });
 
 test("defaultSinceFor: Thursday until → Sunday 364 days earlier", () => {

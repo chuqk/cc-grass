@@ -19,6 +19,7 @@
 Claude Code 的 `/usage > Stats` 里其实已经有一张贡献图了，但它只活在终端里。**cc-grass** 用同一份数据画一张和 GitHub 贡献图像素级一致的 SVG，颜色换成橙色，让你贴到 GitHub profile README、个人主页、随便哪儿。
 
 - **零依赖。** 只用 `fs` / `path` / `os`。不依赖 `ccusage`，不调任何 API。
+- **重复运行更快。** 增量缓存只重新解析新增或变更的会话文件，运行时间取决于当天的活动量而非全部历史（可用 `--no-cache` 关闭）。
 - **跨平台。** macOS / Linux / Windows，Node ≥ 18。
 - **只输出 SVG。** 不内置 daemon、cron 或 GitHub Action 模板。怎么调度由你定。
 - **像素级复刻 GitHub。** 10×10 方格、3px 间距、圆角、Mon/Wed/Fri 行标签、月份表头、*Less / More* 图例都在。
@@ -55,6 +56,8 @@ npx cc-grass --html --output grass.html
 | `--header <string>` | 自动 | 覆盖标题文字 |
 | `--claude-dir <path>` | `~/.claude` | 指定 Claude Code 数据目录 |
 | `--include-subagents` | on | 同时统计 subagent jsonl（用 `--no-include-subagents` 排除） |
+| `--no-cache` | 缓存 on | 不使用增量缓存，每次扫描全部文件 |
+| `--cache-dir <path>` | `~/.cache/cc-grass` | 更改缓存位置（Windows 为 `%LOCALAPPDATA%\cc-grass\Cache`） |
 | `--html` | off | 包成最小 HTML 页面，hover tooltip 可用 |
 | `--version`, `-v` | — | 版本号 |
 | `--help`, `-h` | — | 帮助 |

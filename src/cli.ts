@@ -26,6 +26,8 @@ Options:
   --claude-dir <path>                  Override ~/.claude location
   --include-subagents                  Count subagent jsonl files (default: on)
   --no-include-subagents               Exclude subagent jsonl files
+  --no-cache                           Re-scan every file (skip the incremental cache)
+  --cache-dir <path>                   Override cache directory (default: ~/.cache/cc-grass)
   --html                               Output HTML page (with hover tooltips)
   --version, -v                        Print version and exit
   --help, -h                           Show this help
@@ -87,6 +89,8 @@ async function main(): Promise<void> {
         header: { type: "string" },
         "claude-dir": { type: "string" },
         "include-subagents": { type: "boolean", default: true },
+        cache: { type: "boolean", default: true },
+        "cache-dir": { type: "string" },
         html: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", short: "v", default: false },
@@ -139,6 +143,8 @@ async function main(): Promise<void> {
     since,
     until,
     includeSubagents: values["include-subagents"],
+    cache: values.cache,
+    cacheDir: values["cache-dir"],
   });
 
   const svg = renderSvg({
@@ -184,8 +190,11 @@ async function main(): Promise<void> {
 
   if (values.output) {
     writeFileSync(values.output, out, "utf8");
+    const cacheNote = result.cacheStats
+      ? `, ${result.cacheStats.unchanged} cached / ${result.cacheStats.parsed} parsed`
+      : "";
     process.stderr.write(
-      `wrote ${values.output} (${result.fileCount} files, ${result.total.tokens.toLocaleString()} tokens)\n`,
+      `wrote ${values.output} (${result.fileCount} files${cacheNote}, ${result.total.tokens.toLocaleString()} tokens)\n`,
     );
   } else {
     process.stdout.write(out);

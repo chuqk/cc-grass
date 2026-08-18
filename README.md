@@ -19,6 +19,7 @@
 Claude Code already shows you a contribution graph in `/usage > Stats` — but it stays in your terminal. **cc-grass** turns that same data into a stand-alone SVG with the exact GitHub contribution graph layout, just with the grass dyed orange. Drop it into your GitHub profile README, your portfolio, anywhere.
 
 - **Zero dependencies.** Pure `fs` / `path` / `os`. No `ccusage`, no API calls.
+- **Fast repeat runs.** An incremental cache re-parses only new or changed session files, so run time tracks today's activity instead of your whole history (`--no-cache` to disable).
 - **Cross-platform.** Works on macOS, Linux, Windows. Node ≥ 18.
 - **Just an SVG.** No daemons, no schedulers, no GitHub Actions bundled in. You decide how often to run it.
 - **Pixel-perfect GitHub clone.** 10×10 cells, 3px gap, rounded corners, Mon/Wed/Fri labels, monthly headers, *Less / More* legend.
@@ -55,6 +56,8 @@ Then paste into your README:
 | `--header <string>` | auto | Override the headline (`34.8m tokens in the last year`) |
 | `--claude-dir <path>` | `~/.claude` | Override the Claude Code data directory |
 | `--include-subagents` | on | Count subagent jsonl files (use `--no-include-subagents` to exclude) |
+| `--no-cache` | cache on | Re-scan every file instead of using the incremental cache |
+| `--cache-dir <path>` | `~/.cache/cc-grass` | Override the cache location (`%LOCALAPPDATA%\cc-grass\Cache` on Windows) |
 | `--html` | off | Wrap the SVG in a minimal HTML page so hover tooltips work |
 | `--version`, `-v` | — | Print version |
 | `--help`, `-h` | — | Show help |

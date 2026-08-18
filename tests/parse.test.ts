@@ -12,6 +12,7 @@ test("parse: counts tokens, prompts, sessions from main jsonl (no subagents)", a
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
     includeSubagents: false,
+    cache: false,
   });
   assert.equal(r.fileCount, 1, "should find only main jsonl");
   assert.equal(r.total.prompts, 3, "3 human prompts (tool_result excluded)");
@@ -25,6 +26,7 @@ test("parse: includes subagents by default", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
     includeSubagents: true,
+    cache: false,
   });
   assert.equal(r.fileCount, 2);
   assert.equal(r.total.prompts, 4);
@@ -35,6 +37,7 @@ test("parse: per-day tokens are correct", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
     includeSubagents: false,
+    cache: false,
   });
   const day1 = r.buckets.get("2026-05-01");
   const day2 = r.buckets.get("2026-05-02");
@@ -49,6 +52,7 @@ test("parse: since/until filtering", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
     includeSubagents: false,
+    cache: false,
     since: new Date("2026-05-02T00:00:00.000Z"),
     until: new Date("2026-05-02T23:59:59.999Z"),
   });
@@ -60,6 +64,7 @@ test("parse: model tokens are tracked per day", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
     includeSubagents: false,
+    cache: false,
   });
   const day1 = r.buckets.get("2026-05-01");
   const day2 = r.buckets.get("2026-05-02");
@@ -71,6 +76,7 @@ test("parse: model tokens are tracked per day", async () => {
 test("parse: missing dir returns empty result", async () => {
   const r = await parseClaudeProjects({
     claudeDir: "/nonexistent/path/xyzzy",
+    cache: false,
   });
   assert.equal(r.fileCount, 0);
   assert.equal(r.total.tokens, 0);

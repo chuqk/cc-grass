@@ -19,6 +19,7 @@
 Claude Code の `/usage > Stats` には既に GitHub 風の草が出ているけど、それはターミナルの中でしか見られない。**cc-grass** は同じデータを読んで、GitHub の contribution graph と寸分違わぬレイアウトの SVG を吐く。色だけオレンジ。これを GitHub プロフィール README に貼る。
 
 - **依存ゼロ。** `fs` / `path` / `os` だけで完結。`ccusage` も API も使わない。
+- **2回目以降は高速。** 増分キャッシュにより新規・変更されたセッションファイルだけを再パース。実行時間は履歴の総量でなく当日の活動量に比例（`--no-cache` で無効化可）。
 - **クロスプラットフォーム。** macOS / Linux / Windows、Node ≥ 18。
 - **SVG を吐くだけ。** デーモンも cron もバンドルしない。実行頻度は自分で決める。
 - **GitHub 草の完全再現。** 10×10 セル、3px gap、角丸、Mon/Wed/Fri ラベル、月ヘッダ、Less/More 凡例まで。
@@ -55,6 +56,8 @@ README に貼る:
 | `--header <string>` | 自動 | ヘッダ文言を上書き |
 | `--claude-dir <path>` | `~/.claude` | Claude Code データディレクトリを上書き |
 | `--include-subagents` | on | サブエージェントの jsonl も合算（`--no-include-subagents` で除外） |
+| `--no-cache` | キャッシュ on | 増分キャッシュを使わず毎回全ファイルを走査 |
+| `--cache-dir <path>` | `~/.cache/cc-grass` | キャッシュの保存先を変更（Windows は `%LOCALAPPDATA%\cc-grass\Cache`） |
 | `--html` | off | hover ツールチップが効く HTML として出力 |
 | `--version`, `-v` | — | バージョン表示 |
 | `--help`, `-h` | — | ヘルプ |

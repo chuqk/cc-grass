@@ -21,7 +21,8 @@
 
 | ファイル | 役割 |
 |---|---|
-| `src/parse.ts` | jsonl → 日別 bucket (トークン4種別 × モデル別) |
+| `src/parse.ts` | jsonl → 日別 bucket (トークン4種別 × モデル別)。増分キャッシュ統合 |
+| `src/cache.ts` | ファイル単位の増分スキャンキャッシュ (mtime+size キー、`~/.cache/cc-grass/`) |
 | `src/pricing.ts` | モデル別 API 単価テーブル |
 | `src/levels.ts` | 値 → 草レベル (0-4) の閾値計算 |
 | `src/svg.ts` | bucket → SVG 文字列 |
