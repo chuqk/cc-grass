@@ -1,6 +1,6 @@
 # cc-grass
 
-> Claude Code 사용량을 **오렌지색 GitHub 잔디**로 그려주는 CLI. `~/.claude/projects/**/*.jsonl`을 직접 읽어서 프로필 README에 붙일 수 있는 SVG를 뽑아냅니다.
+> Claude Code 사용량을 **오렌지색 GitHub 잔디**로 그려주는 CLI. `~/.claude/projects/**/*.jsonl`(OpenAI Codex CLI도 쓰면 `~/.codex/sessions`까지)을 직접 읽어서 프로필 README에 붙일 수 있는 SVG를 뽑아냅니다.
 
 [English](https://github.com/chuqk/cc-grass/blob/main/README.md) · [简体中文](https://github.com/chuqk/cc-grass/blob/main/README.zh-CN.md) · [日本語](https://github.com/chuqk/cc-grass/blob/main/README.ja.md)
 
@@ -55,6 +55,8 @@ README에 붙이기:
 | `--theme <dark\|light>` | `dark` | 테마 |
 | `--header <string>` | 자동 | 헤더 텍스트 덮어쓰기 |
 | `--claude-dir <path>` | `~/.claude` | Claude Code 데이터 디렉토리 지정 |
+| `--codex-dir <path>` | `~/.codex` | OpenAI Codex CLI 데이터 디렉토리 지정 |
+| `--no-codex` | codex on | Codex CLI 세션 제외 (`~/.codex`가 있으면 기본 포함) |
 | `--include-subagents` | on | subagent jsonl 도 합산 (`--no-include-subagents`로 제외) |
 | `--no-cache` | 캐시 on | 증분 캐시를 쓰지 않고 매번 전체 파일을 스캔 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | 캐시 저장 위치 변경 (Windows는 `%LOCALAPPDATA%\cc-grass\Cache`) |
@@ -100,6 +102,8 @@ GitHub Actions의 `workflow_dispatch`를 로컬에서 트리거하거나, profil
 ## 토큰 계산식
 
 하루치 `tokens` = 그 날 (로컬 시간) 각 항목의 4개 `usage` 필드 합: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`. API가 과금하는 모든 토큰을 셉니다. subagent jsonl은 기본 포함; `--no-include-subagents`를 전달하면 제외됩니다 (Claude Code `/usage` 숫자와 일치).
+
+Codex CLI 세션(`~/.codex/sessions/**/rollout-*.jsonl`)은 각 `token_count` 이벤트의 누적 `total_token_usage` 차분으로 셉니다 (같은 이벤트가 두 번 기록될 수 있기 때문). `cached_input_tokens`는 cache read에 해당하고, `input + cache_write + output`이 과금 합계입니다. 모델명은 `turn_context`에서 가져옵니다 (예: `gpt-6-astra`).
 
 `--html` 출력에는 인터랙티브 막대 그래프가 포함되며, 툴팁에 모델별 추정 API 비용이 표시됩니다. 비용은 각 모델의 공개 per-MTok 요금을 사용하여, 4가지 토큰 카테고리 각각의 단가로 산출됩니다 (cache read는 저렴하고, cache write는 기본 input보다 비쌈).
 

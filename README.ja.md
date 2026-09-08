@@ -1,6 +1,6 @@
 # cc-grass
 
-> Claude Code の使用量で **オレンジ色の GitHub 草** を生やす CLI。`~/.claude/projects/**/*.jsonl` を直接読んで、プロフィール README に貼れる SVG を出します。
+> Claude Code の使用量で **オレンジ色の GitHub 草** を生やす CLI。`~/.claude/projects/**/*.jsonl` (OpenAI Codex CLI も使っていれば `~/.codex/sessions` も) を直接読んで、プロフィール README に貼れる SVG を出します。
 
 [English](https://github.com/chuqk/cc-grass/blob/main/README.md) · [简体中文](https://github.com/chuqk/cc-grass/blob/main/README.zh-CN.md) · [한국어](https://github.com/chuqk/cc-grass/blob/main/README.ko.md)
 
@@ -55,6 +55,8 @@ README に貼る:
 | `--theme <dark\|light>` | `dark` | テーマ |
 | `--header <string>` | 自動 | ヘッダ文言を上書き |
 | `--claude-dir <path>` | `~/.claude` | Claude Code データディレクトリを上書き |
+| `--codex-dir <path>` | `~/.codex` | OpenAI Codex CLI データディレクトリを上書き |
+| `--no-codex` | codex on | Codex CLI セッションを数えない (`~/.codex` があればデフォルトで数える) |
 | `--include-subagents` | on | サブエージェントの jsonl も合算（`--no-include-subagents` で除外） |
 | `--no-cache` | キャッシュ on | 増分キャッシュを使わず毎回全ファイルを走査 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | キャッシュの保存先を変更（Windows は `%LOCALAPPDATA%\cc-grass\Cache`） |
@@ -100,6 +102,8 @@ GitHub Actions の `workflow_dispatch` を手元から叩く方式でも、profi
 ## トークン計算式
 
 1 日あたりの `tokens` = その日（ローカル時刻）の各エントリの 4 つの `usage` フィールドの合計: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`。API が課金する全トークンを数える。サブエージェントの jsonl はデフォルトで含まれる。`--no-include-subagents` を渡すと除外できる（Claude Code の `/usage` の数字と一致する）。
+
+Codex CLI のセッション (`~/.codex/sessions/**/rollout-*.jsonl`) は各 `token_count` イベントの累計 `total_token_usage` の差分で数える (同じイベントが二重に記録されることがあるため)。`cached_input_tokens` は cache read に対応し、`input + cache_write + output` が課金合計。モデル名は `turn_context` から取る (例 `gpt-6-astra`)。
 
 `--html` 出力にはインタラクティブな棒グラフが含まれ、ツールチップにモデル別の推定 API コストが表示される。コストは各モデルの公開 per-MTok レートを使い、4 つのトークンカテゴリそれぞれの単価で算出される（cache read は安く、cache write はベース input より高い）。
 

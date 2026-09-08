@@ -1,6 +1,6 @@
 # cc-grass
 
-> 把 Claude Code 的用量画成 **橙色版 GitHub 贡献草**。直接读取 `~/.claude/projects/**/*.jsonl`，输出可贴到 profile README 的 SVG。
+> 把 Claude Code 的用量画成 **橙色版 GitHub 贡献草**。直接读取 `~/.claude/projects/**/*.jsonl`（如果你也用 OpenAI Codex CLI，还会读取 `~/.codex/sessions`），输出可贴到 profile README 的 SVG。
 
 [English](https://github.com/chuqk/cc-grass/blob/main/README.md) · [日本語](https://github.com/chuqk/cc-grass/blob/main/README.ja.md) · [한국어](https://github.com/chuqk/cc-grass/blob/main/README.ko.md)
 
@@ -55,6 +55,8 @@ npx cc-grass --html --output grass.html
 | `--theme <dark\|light>` | `dark` | 主题 |
 | `--header <string>` | 自动 | 覆盖标题文字 |
 | `--claude-dir <path>` | `~/.claude` | 指定 Claude Code 数据目录 |
+| `--codex-dir <path>` | `~/.codex` | 指定 OpenAI Codex CLI 数据目录 |
+| `--no-codex` | codex on | 不统计 Codex CLI 会话（存在 `~/.codex` 时默认统计） |
 | `--include-subagents` | on | 同时统计 subagent jsonl（用 `--no-include-subagents` 排除） |
 | `--no-cache` | 缓存 on | 不使用增量缓存，每次扫描全部文件 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | 更改缓存位置（Windows 为 `%LOCALAPPDATA%\cc-grass\Cache`） |
@@ -100,6 +102,8 @@ cc-grass 故意不内置调度器，自己挑顺手的方式：
 ## Token 计算
 
 每天的 `tokens` = 当天（本地时区）所有条目的四个 `usage` 字段之和: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`。统计 API 会计费的全部 token。subagent jsonl 默认包含；传 `--no-include-subagents` 可排除（与 Claude Code `/usage` 数字一致）。
+
+Codex CLI 会话（`~/.codex/sessions/**/rollout-*.jsonl`）按每个 `token_count` 事件中累计 `total_token_usage` 的增量统计（同一事件可能被重复记录）。`cached_input_tokens` 对应 cache read，`input + cache_write + output` 为计费总量。模型名取自 `turn_context`（如 `gpt-6-astra`）。
 
 `--html` 输出包含交互式柱状图，tooltip 中显示按模型估算的 API 费用。费用按各模型公布的 per-MTok 费率计算，四类 token 各自适用对应单价（cache read 较便宜，cache write 比基础 input 更贵）。
 

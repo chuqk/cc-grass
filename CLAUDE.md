@@ -15,7 +15,8 @@
 
 全4種別を合算: `input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens`。subagents はデフォルト込み (`--no-include-subagents` で除外可)。
 
-Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` イベントの累計値の差分で数える (同一イベントが二重記録されるため合算は不可)。`cached_input_tokens` は `input_tokens` の内数なので cacheRead に写し、請求対象は `input + cache_write + output`。モデル名は `turn_context.payload.model` (例 `gpt-6-astra`)。GPT 系の単価は `pricing.ts` 未登録 (ツールチップに費用は出ない)。
+Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` の累計値の差分で数える。
+方式の理由と請求対象の写し方は D-2026-003。GPT 系の単価は `pricing.ts` 未登録 (費用は出ない)。
 
 `--html` 出力の棒グラフツールチップにはモデル別の推定API費用を表示 (`src/pricing.ts` に単価テーブル)。
 
@@ -28,7 +29,7 @@ Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` �
 | `src/pricing.ts` | モデル別 API 単価テーブル |
 | `src/levels.ts` | 値 → 草レベル (0-4) の閾値計算 |
 | `src/svg.ts` | bucket → SVG 文字列 |
-| `src/html.ts` | SVG + 棒グラフ付き HTML ページ。配色は既知モデルの固定表 `PAL` + 系列別グラデ `RAMP` (新モデルは系列色の未使用シェードを自動割当・新しいほど濃い)。凡例は系列ごとに1行 |
+| `src/html.ts` | SVG + 棒グラフ付き HTML ページ。配色は固定表 `PAL` + 系列別グラデ `RAMP` (新モデルは系列色を自動割当)。凡例は系列ごとに1行 |
 | `src/cli.ts` | CLI エントリポイント |
 
 ## 公開先
