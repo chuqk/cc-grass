@@ -11,6 +11,7 @@ const FIXTURE = join(__dirname, "fixtures");
 test("parse: counts tokens, prompts, sessions from main jsonl (no subagents)", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
+    includeCodex: false,
     includeSubagents: false,
     cache: false,
   });
@@ -25,6 +26,7 @@ test("parse: counts tokens, prompts, sessions from main jsonl (no subagents)", a
 test("parse: includes subagents by default", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
+    includeCodex: false,
     includeSubagents: true,
     cache: false,
   });
@@ -36,6 +38,7 @@ test("parse: includes subagents by default", async () => {
 test("parse: per-day tokens are correct", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
+    includeCodex: false,
     includeSubagents: false,
     cache: false,
   });
@@ -51,6 +54,7 @@ test("parse: per-day tokens are correct", async () => {
 test("parse: since/until filtering", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
+    includeCodex: false,
     includeSubagents: false,
     cache: false,
     since: new Date("2026-05-02T00:00:00.000Z"),
@@ -63,6 +67,7 @@ test("parse: since/until filtering", async () => {
 test("parse: model tokens are tracked per day", async () => {
   const r = await parseClaudeProjects({
     claudeDir: FIXTURE,
+    includeCodex: false,
     includeSubagents: false,
     cache: false,
   });
@@ -76,8 +81,45 @@ test("parse: model tokens are tracked per day", async () => {
 test("parse: missing dir returns empty result", async () => {
   const r = await parseClaudeProjects({
     claudeDir: "/nonexistent/path/xyzzy",
+    includeCodex: false,
     cache: false,
   });
   assert.equal(r.fileCount, 0);
   assert.equal(r.total.tokens, 0);
+});
+
+test("parse: counts Codex CLI sessions (delta of cumulative token_count, dup-safe)", async () => {
+  const r = await parseClaudeProjects({
+    claudeDir: join(FIXTURE, "no-such-dir"),
+    codexDir: join(FIXTURE, "codex"),
+    cache: false,
+  });
+  assert.equal(r.fileCount, 2);
+  // File 1: cumulative counters end at input 3000 + output 280; duplicate and
+  // info:null events are ignored. File 2 is a fork: its first token_count
+  // carries the parent's 3280 (baseline, not counted) and then adds 500 + 20.
+  assert.equal(r.total.tokens, 3000 + 280 + 500 + 20);
+  assert.equal(r.total.prompts, 2, "one task_started = one prompt");
+  const fork = r.buckets.get("2026-09-08");
+  assert.equal(fork?.tokens, 520);
+  assert.deepEqual([...fork!.modelTokens.keys()], ["gpt-5.5"]);
+  const day = r.buckets.get("2026-09-07");
+  assert.ok(day);
+  // Model comes from turn_context (gpt-6-astra), overriding session_meta (gpt-5.5).
+  assert.deepEqual([...day!.modelTokens.keys()], ["gpt-6-astra"]);
+  assert.equal(day!.modelTokens.get("gpt-6-astra"), 3280);
+  const bd = day!.modelBreakdown.get("gpt-6-astra")!;
+  assert.equal(bd.cacheRead, 400, "cached_input_tokens -> cacheRead");
+  assert.equal(bd.input, 3000 - 400, "non-cached input");
+  assert.equal(bd.output, 280);
+});
+
+test("parse: includeCodex=false skips ~/.codex entirely", async () => {
+  const r = await parseClaudeProjects({
+    claudeDir: join(FIXTURE, "no-such-dir"),
+    codexDir: join(FIXTURE, "codex"),
+    includeCodex: false,
+    cache: false,
+  });
+  assert.equal(r.fileCount, 0);
 });

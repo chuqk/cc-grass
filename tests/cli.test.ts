@@ -21,7 +21,7 @@ const PKG_VERSION = (
 function run(args: string[]) {
   return spawnSync(
     "node",
-    [CLI, "--claude-dir", FIXTURE, "--cache-dir", CACHE_DIR, ...args],
+    [CLI, "--claude-dir", FIXTURE, "--no-codex", "--cache-dir", CACHE_DIR, ...args],
     { encoding: "utf8" },
   );
 }
@@ -66,7 +66,7 @@ test("cli: accepts valid date range and writes SVG to stdout", () => {
 test("cli: second run reports cache hits in the summary", () => {
   const cacheDir = mkdtempSync(join(tmpdir(), "cc-grass-cli-warm-"));
   const out = join(cacheDir, "grass.svg");
-  const args = ["--claude-dir", FIXTURE, "--cache-dir", cacheDir, "-o", out];
+  const args = ["--claude-dir", FIXTURE, "--no-codex", "--cache-dir", cacheDir, "-o", out];
   const cold = spawnSync("node", [CLI, ...args], { encoding: "utf8" });
   assert.equal(cold.status, 0);
   assert.match(cold.stderr, /0 cached \/ 2 parsed/);
@@ -80,7 +80,7 @@ test("cli: --no-cache omits cache stats from the summary", () => {
   const out = join(cacheDir, "grass.svg");
   const r = spawnSync(
     "node",
-    [CLI, "--claude-dir", FIXTURE, "--no-cache", "-o", out],
+    [CLI, "--claude-dir", FIXTURE, "--no-codex", "--no-cache", "-o", out],
     { encoding: "utf8" },
   );
   assert.equal(r.status, 0);

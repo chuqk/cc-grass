@@ -17,6 +17,10 @@ import {
 
 export interface ParseOptions {
   claudeDir?: string;
+  /** Codex CLI data directory (default: ~/.codex). Its sessions/ and archived_sessions/ are scanned. */
+  codexDir?: string;
+  /** Also count OpenAI Codex CLI sessions when the directory exists (default: true). */
+  includeCodex?: boolean;
   since?: Date;
   until?: Date;
   includeSubagents?: boolean;
@@ -70,6 +74,31 @@ interface JsonlEntry {
       cache_read_input_tokens?: number;
     };
   };
+}
+
+// Codex CLI rollout format (~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl).
+interface CodexTokenUsage {
+  input_tokens?: number;
+  cached_input_tokens?: number;
+  cache_write_input_tokens?: number;
+  output_tokens?: number;
+}
+
+interface CodexEntry {
+  type?: string;
+  timestamp?: string;
+  payload?: {
+    type?: string;
+    model?: string;
+    info?: { total_token_usage?: CodexTokenUsage } | null;
+  };
+}
+
+type SourceKind = "claude" | "codex";
+
+interface SourceFile {
+  path: string;
+  kind: SourceKind;
 }
 
 const SKIP_DIR_NAMES = new Set(["tool-results", "memory", "node_modules"]);
@@ -215,12 +244,130 @@ async function parseFileDays(
   return days;
 }
 
+// Codex emits a `token_count` event after every model response carrying the
+// session-cumulative `total_token_usage`. The same event is sometimes written
+// twice, so we attribute the *delta of the cumulative counters* rather than
+// summing the per-response `last_token_usage` (which double counts).
+// `cached_input_tokens` is a subset of `input_tokens`, so the billable total is
+// input + cache_write + output.
+async function parseCodexFileDays(
+  file: string,
+  sinceMs?: number,
+  untilMs?: number,
+): Promise<Record<string, CachedDay>> {
+  const days: Record<string, CachedDay> = {};
+  // Unknown until turn_context/session_meta names the model. A forked thread
+  // starts with a token_count that carries the parent's cumulative usage
+  // (already counted in the parent's file), so counters seen before the model
+  // is known only set the baseline.
+  let model: string | null = null;
+  let prev: Required<CodexTokenUsage> = {
+    input_tokens: 0,
+    cached_input_tokens: 0,
+    cache_write_input_tokens: 0,
+    output_tokens: 0,
+  };
+  try {
+    const rl = createInterface({
+      input: createReadStream(file, { encoding: "utf8" }),
+      crlfDelay: Infinity,
+    });
+    for await (const line of rl) {
+      if (!line) continue;
+      let entry: CodexEntry;
+      try {
+        entry = JSON.parse(line) as CodexEntry;
+      } catch {
+        continue;
+      }
+      const payload = entry.payload;
+      if (!payload) continue;
+
+      if (entry.type === "session_meta" || entry.type === "turn_context") {
+        if (typeof payload.model === "string" && payload.model) model = payload.model;
+        continue;
+      }
+      if (entry.type !== "event_msg") continue;
+
+      const ts = entry.timestamp;
+      if (!ts) continue;
+      const tsMs = new Date(ts).getTime();
+      if (Number.isNaN(tsMs)) continue;
+
+      if (payload.type === "token_count") {
+        const tot = payload.info?.total_token_usage;
+        if (!tot) continue;
+        const cur: Required<CodexTokenUsage> = {
+          input_tokens: tot.input_tokens ?? 0,
+          cached_input_tokens: tot.cached_input_tokens ?? 0,
+          cache_write_input_tokens: tot.cache_write_input_tokens ?? 0,
+          output_tokens: tot.output_tokens ?? 0,
+        };
+        const dIn = cur.input_tokens - prev.input_tokens;
+        const dCached = cur.cached_input_tokens - prev.cached_input_tokens;
+        const dWrite = cur.cache_write_input_tokens - prev.cache_write_input_tokens;
+        const dOut = cur.output_tokens - prev.output_tokens;
+        prev = cur;
+        if (model === null) continue;
+        // Counters reset (new thread in the same file) or duplicate event: skip.
+        if (dIn < 0 || dOut < 0 || dCached < 0 || dWrite < 0) continue;
+        const tk = dIn + dWrite + dOut;
+        if (tk <= 0) continue;
+        if (sinceMs !== undefined && tsMs < sinceMs) continue;
+        if (untilMs !== undefined && tsMs > untilMs) continue;
+        const date = toLocalDateStr(ts);
+        if (!date) continue;
+        let day = days[date];
+        if (!day) {
+          day = { prompts: 0, tokens: 0, models: {} };
+          days[date] = day;
+        }
+        day.tokens += tk;
+        let bd = day.models[model];
+        if (!bd) {
+          bd = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+          day.models[model] = bd;
+        }
+        bd.input += Math.max(0, dIn - dCached);
+        bd.cacheRead += Math.min(dCached, dIn);
+        bd.cacheWrite += dWrite;
+        bd.output += dOut;
+      } else if (payload.type === "task_started") {
+        if (sinceMs !== undefined && tsMs < sinceMs) continue;
+        if (untilMs !== undefined && tsMs > untilMs) continue;
+        const date = toLocalDateStr(ts);
+        if (!date) continue;
+        let day = days[date];
+        if (!day) {
+          day = { prompts: 0, tokens: 0, models: {} };
+          days[date] = day;
+        }
+        day.prompts += 1;
+      }
+    }
+  } catch {
+    // Unreadable file — keep whatever was aggregated before the failure.
+  }
+  return days;
+}
+
 export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<ParseResult> {
   const claudeDir = opts.claudeDir ?? join(homedir(), ".claude");
   const projectsDir = join(claudeDir, "projects");
   const includeSubagents = opts.includeSubagents ?? true;
 
-  const files = await walkJsonl(projectsDir, includeSubagents);
+  const files: SourceFile[] = (await walkJsonl(projectsDir, includeSubagents)).map((path) => ({
+    path,
+    kind: "claude" as const,
+  }));
+  if (opts.includeCodex ?? true) {
+    const codexDir = opts.codexDir ?? join(homedir(), ".codex");
+    for (const sub of ["sessions", "archived_sessions"]) {
+      for (const path of await walkJsonl(join(codexDir, sub), true)) {
+        files.push({ path, kind: "codex" });
+      }
+    }
+  }
 
   const aligned = isLocalDayStart(opts.since) && isLocalDayEnd(opts.until);
   const useCache = (opts.cache ?? true) && aligned;
@@ -240,7 +387,8 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
   let unchanged = 0;
   let parsed = 0;
 
-  for (const file of files) {
+  for (const { path: file, kind } of files) {
+    const parseDays = kind === "codex" ? parseCodexFileDays : parseFileDays;
     let days: Record<string, CachedDay>;
     if (useCache) {
       // Stat before reading: if the file grows mid-parse we cache newer content
@@ -251,12 +399,12 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
         days = hit.days;
         unchanged++;
       } else {
-        days = await parseFileDays(file);
+        days = await parseDays(file);
         parsed++;
       }
       if (st) nextFiles[file] = { mtimeMs: st.mtimeMs, size: st.size, days };
     } else {
-      days = await parseFileDays(file, opts.since?.getTime(), opts.until?.getTime());
+      days = await parseDays(file, opts.since?.getTime(), opts.until?.getTime());
       parsed++;
     }
     perFileDays.push([file, days]);

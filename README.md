@@ -1,6 +1,6 @@
 # cc-grass
 
-> GitHub-style **orange grass** for your Claude Code usage. Reads `~/.claude/projects/**/*.jsonl` and renders an SVG you can paste into your profile README.
+> GitHub-style **orange grass** for your Claude Code usage. Reads `~/.claude/projects/**/*.jsonl` (plus `~/.codex/sessions` if you also use OpenAI Codex CLI) and renders an SVG you can paste into your profile README.
 
 [简体中文](https://github.com/chuqk/cc-grass/blob/main/README.zh-CN.md) · [日本語](https://github.com/chuqk/cc-grass/blob/main/README.ja.md) · [한국어](https://github.com/chuqk/cc-grass/blob/main/README.ko.md)
 
@@ -55,6 +55,8 @@ Then paste into your README:
 | `--theme <dark\|light>` | `dark` | Color theme |
 | `--header <string>` | auto | Override the headline (`34.8m tokens in the last year`) |
 | `--claude-dir <path>` | `~/.claude` | Override the Claude Code data directory |
+| `--codex-dir <path>` | `~/.codex` | Override the OpenAI Codex CLI data directory |
+| `--no-codex` | codex on | Ignore Codex CLI sessions (counted by default when `~/.codex` exists) |
 | `--include-subagents` | on | Count subagent jsonl files (use `--no-include-subagents` to exclude) |
 | `--no-cache` | cache on | Re-scan every file instead of using the incremental cache |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | Override the cache location (`%LOCALAPPDATA%\cc-grass\Cache` on Windows) |
@@ -100,6 +102,8 @@ Or wire it to a `gh workflow_dispatch` you trigger from your laptop, or just run
 ## Token math
 
 `tokens` per day = sum of all four `usage` fields per entry: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`. This counts every token the API would bill for. Subagent jsonl files are included by default; pass `--no-include-subagents` to exclude them (this matches the number Claude Code shows in `/usage`).
+
+Codex CLI sessions (`~/.codex/sessions/**/rollout-*.jsonl`) are counted from the cumulative `total_token_usage` in each `token_count` event, taking deltas so duplicated events are not double counted. `cached_input_tokens` maps to cache reads; `input + cache_write + output` is the billable total. The model is taken from `turn_context` (e.g. `gpt-6-astra`).
 
 The `--html` output includes an interactive bar chart with estimated API cost per model in the tooltip. Costs are calculated using each model's published per-MTok rates, applied to the four token categories at their respective prices (cache reads are cheaper, cache writes are more expensive than base input).
 

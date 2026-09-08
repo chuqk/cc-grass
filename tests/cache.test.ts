@@ -47,17 +47,17 @@ function snapshot(r: ParseResult) {
 
 test("cache: warm run hits cache and returns identical results", async () => {
   const { claudeDir, cacheDir } = setup();
-  const cold = await parseClaudeProjects({ claudeDir, cacheDir });
+  const cold = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
   assert.deepEqual(cold.cacheStats, { unchanged: 0, parsed: 2 });
 
-  const warm = await parseClaudeProjects({ claudeDir, cacheDir });
+  const warm = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
   assert.deepEqual(warm.cacheStats, { unchanged: 2, parsed: 0 });
   assert.deepEqual(snapshot(warm), snapshot(cold));
 });
 
 test("cache: changed file is re-parsed, unchanged file stays cached", async () => {
   const { claudeDir, cacheDir } = setup();
-  const cold = await parseClaudeProjects({ claudeDir, cacheDir });
+  const cold = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
 
   const sessionFile = join(claudeDir, "projects", "test-proj", "session-a.jsonl");
   appendFileSync(
@@ -65,7 +65,7 @@ test("cache: changed file is re-parsed, unchanged file stays cached", async () =
     `\n{"type":"assistant","timestamp":"2026-05-04T09:00:00.000Z","message":{"role":"assistant","model":"claude-opus-4-8","usage":{"input_tokens":4,"output_tokens":3}}}\n`,
   );
 
-  const warm = await parseClaudeProjects({ claudeDir, cacheDir });
+  const warm = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
   assert.deepEqual(warm.cacheStats, { unchanged: 1, parsed: 1 });
   assert.equal(warm.total.tokens, cold.total.tokens + 7);
   assert.equal(warm.buckets.get("2026-05-04")?.tokens, 7);
@@ -73,24 +73,24 @@ test("cache: changed file is re-parsed, unchanged file stays cached", async () =
 
 test("cache: corrupt cache file falls back to a full scan", async () => {
   const { claudeDir, cacheDir } = setup();
-  const cold = await parseClaudeProjects({ claudeDir, cacheDir });
+  const cold = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
 
   const cacheFiles = readdirSync(cacheDir).filter((f) => f.endsWith(".json"));
   assert.equal(cacheFiles.length, 1);
   writeFileSync(join(cacheDir, cacheFiles[0]), "not json at all", "utf8");
 
-  const recovered = await parseClaudeProjects({ claudeDir, cacheDir });
+  const recovered = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
   assert.deepEqual(recovered.cacheStats, { unchanged: 0, parsed: 2 });
   assert.deepEqual(snapshot(recovered), snapshot(cold));
 });
 
 test("cache: deleted file is pruned from results on the next run", async () => {
   const { claudeDir, cacheDir } = setup();
-  await parseClaudeProjects({ claudeDir, cacheDir });
+  await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
 
   rmSync(join(claudeDir, "projects", "test-proj", "session-a", "subagents", "agent-1.jsonl"));
 
-  const after = await parseClaudeProjects({ claudeDir, cacheDir });
+  const after = await parseClaudeProjects({ claudeDir, cacheDir, includeCodex: false });
   assert.equal(after.fileCount, 1);
   assert.equal(after.total.tokens, 100 + 50 + (200 + 80 + 1000 + 500) + 10 + 5);
   assert.deepEqual(after.cacheStats, { unchanged: 1, parsed: 0 });
@@ -102,11 +102,12 @@ test("cache: sub-day since/until window bypasses the cache", async () => {
   const since = new Date(2026, 4, 1, 9, 30);
   const until = new Date(2026, 4, 3, 23, 59, 59, 999);
 
-  const exact = await parseClaudeProjects({ claudeDir, cacheDir, since, until });
+  const exact = await parseClaudeProjects({ claudeDir, cacheDir, since, until, includeCodex: false });
   assert.equal(exact.cacheStats, undefined);
 
   const uncached = await parseClaudeProjects({
     claudeDir,
+    includeCodex: false,
     cache: false,
     since,
     until,
@@ -120,18 +121,18 @@ test("cache: day-aligned since/until uses cache and matches uncached scan", asyn
   const since = new Date(2026, 4, 2, 0, 0, 0, 0);
   const until = new Date(2026, 4, 2, 23, 59, 59, 999);
 
-  const cold = await parseClaudeProjects({ claudeDir, cacheDir, since, until });
+  const cold = await parseClaudeProjects({ claudeDir, cacheDir, since, until, includeCodex: false });
   assert.deepEqual(cold.cacheStats, { unchanged: 0, parsed: 2 });
-  const warm = await parseClaudeProjects({ claudeDir, cacheDir, since, until });
+  const warm = await parseClaudeProjects({ claudeDir, cacheDir, since, until, includeCodex: false });
   assert.deepEqual(warm.cacheStats, { unchanged: 2, parsed: 0 });
 
-  const uncached = await parseClaudeProjects({ claudeDir, cache: false, since, until });
+  const uncached = await parseClaudeProjects({ claudeDir, cache: false, since, until, includeCodex: false });
   assert.deepEqual(snapshot(warm), snapshot(uncached));
 });
 
 test("cache: cache=false writes no cache file", async () => {
   const { claudeDir, cacheDir } = setup();
-  const r = await parseClaudeProjects({ claudeDir, cacheDir, cache: false });
+  const r = await parseClaudeProjects({ claudeDir, cacheDir, cache: false, includeCodex: false });
   assert.equal(r.cacheStats, undefined);
   assert.equal(readdirSync(cacheDir).length, 0);
 });

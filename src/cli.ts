@@ -24,6 +24,8 @@ Options:
   --theme <dark|light>                 Color theme (default: dark)
   --header <string>                    Override header text
   --claude-dir <path>                  Override ~/.claude location
+  --codex-dir <path>                   Override ~/.codex location (OpenAI Codex CLI sessions)
+  --no-codex                           Do not count Codex CLI sessions (default: on when ~/.codex exists)
   --include-subagents                  Count subagent jsonl files (default: on)
   --no-include-subagents               Exclude subagent jsonl files
   --no-cache                           Re-scan every file (skip the incremental cache)
@@ -78,6 +80,8 @@ async function main(): Promise<void> {
         theme: { type: "string", default: "dark" },
         header: { type: "string" },
         "claude-dir": { type: "string" },
+        "codex-dir": { type: "string" },
+        codex: { type: "boolean", default: true },
         "include-subagents": { type: "boolean", default: true },
         cache: { type: "boolean", default: true },
         "cache-dir": { type: "string" },
@@ -130,6 +134,8 @@ async function main(): Promise<void> {
 
   const result = await parseClaudeProjects({
     claudeDir: values["claude-dir"],
+    codexDir: values["codex-dir"],
+    includeCodex: values.codex,
     since,
     until,
     includeSubagents: values["include-subagents"],

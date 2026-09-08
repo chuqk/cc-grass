@@ -105,13 +105,18 @@ ${chartJs()}
   .cc-scroll svg rect[data-week]:hover { opacity: 0.85; }
   .cc-legend {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px 14px;
+    flex-direction: column;
+    gap: 6px;
     padding: 10px 16px;
     border-top: 1px solid ${theme === "dark" ? "#21262d" : "#d0d7de"};
     font-size: 11px;
     color: ${theme === "dark" ? "#7d8590" : "#57606a"};
+  }
+  .cc-legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 14px;
   }
   .cc-legend span {
     display: inline-flex;
@@ -173,22 +178,46 @@ var C={
 var CELL=10,GAP=3,STRIDE=13;
 var BPAD=16,OPAD=8,LPAD=28;
 var gridLeft=OPAD+BPAD+LPAD;
+// Fixed colors for known models. Within a family, newer = darker/more saturated.
 var PAL={
   'Fable 5':'#f9a8d4','Fable 5.1':'#f472b6',
-  'Opus 4.5':'#ffcb8b','Opus 4.6':'#ff9c47','Opus 4.7':'#f97316','Opus 4.8':'#c2410c',
+  'Opus 4.5':'#ffcb8b','Opus 4.6':'#ff9c47','Opus 4.7':'#f97316','Opus 4.8':'#c2410c','Opus 5':'#9a3412',
   'Sonnet 4.5':'#93c5fd','Sonnet 4.6':'#3b82f6','Sonnet 5':'#2563eb',
   'Haiku 4.5':'#86efac','Haiku 4.6':'#22c55e',
   'Synthetic':'#4b5563'
 };
-var EX=['#6b7280','#9ca3af','#fbbf24','#f472b6'];
+// Per-family shade ramps (dark -> light). Models not in PAL take the first
+// unused shade of their family in newest-first order, so a new release keeps
+// the family hue instead of falling back to gray.
+var RAMP={
+  'Fable':['#be185d','#db2777','#f472b6','#f9a8d4','#fbcfe8'],
+  'Opus':['#7c2d12','#9a3412','#c2410c','#f97316','#ff9c47','#ffcb8b','#ffe4c4'],
+  'Sonnet':['#1e40af','#2563eb','#3b82f6','#93c5fd','#bfdbfe'],
+  'Haiku':['#15803d','#22c55e','#86efac','#bbf7d0'],
+  'GPT':['#4c1d95','#6d28d9','#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe']
+};
+var EX=['#6b7280','#9ca3af','#fbbf24','#e5e7eb'];
 var ei=0;
 function gc(n){return PAL[n]||(PAL[n]=EX[ei++%EX.length]);}
+function assignColors(list){
+  var used={};
+  Object.keys(PAL).forEach(function(k){used[PAL[k]]=1;});
+  list.forEach(function(n){
+    if(PAL[n])return;
+    var ramp=RAMP[mfam(n)];
+    if(!ramp)return;
+    for(var i=0;i<ramp.length;i++){if(!used[ramp[i]]){PAL[n]=ramp[i];used[ramp[i]]=1;return;}}
+    PAL[n]=ramp[ramp.length-1];
+  });
+}
 function norm(r){
   var s=r.replace(/\\[.*\\]$/,'');
   if(s==='<synthetic>')return'Synthetic';
   var m=s.match(/^claude-(\\w+)-(.+)$/);
-  if(!m)return r;
-  return m[1][0].toUpperCase()+m[1].slice(1)+' '+m[2].replace(/-\\d{8}$/,'').replace(/-/g,'.');
+  if(m)return m[1][0].toUpperCase()+m[1].slice(1)+' '+m[2].replace(/-\\d{8}$/,'').replace(/-/g,'.');
+  var g=s.match(/^gpt-(\\d+(?:\\.\\d+)?[a-z]?)(?:-(.+))?$/);
+  if(g)return'GPT '+g[1]+(g[2]?' '+g[2]:'');
+  return r;
 }
 function fmt(n){
   if(n<1000)return String(Math.round(n));
@@ -225,15 +254,18 @@ var totals={};
 weeks.forEach(function(w){
   Object.keys(w.models).forEach(function(m){totals[m]=(totals[m]||0)+w.models[m];});
 });
-var FAM_ORD={'Fable':0,'Opus':1,'Sonnet':2,'Haiku':3};
+var FAM_ORD={'Fable':0,'Opus':1,'Sonnet':2,'Haiku':3,'GPT':4};
 function mfam(n){return n.split(' ')[0]||'?';}
 function mver(n){return parseFloat(n.split(' ')[1])||0;}
 var models=Object.keys(totals).sort(function(a,b){
   var fa=FAM_ORD[mfam(a)],fb=FAM_ORD[mfam(b)];
   if(fa===undefined)fa=99;if(fb===undefined)fb=99;
   if(fa!==fb)return fa-fb;
-  return mver(b)-mver(a);
+  var dv=mver(b)-mver(a);
+  if(dv)return dv;
+  return a<b?-1:a>b?1:0;
 });
+assignColors(models);
 var gs=document.querySelector('#cc-grass-scroll svg');
 var svgW=gs?+gs.getAttribute('width'):762;
 var gridRight=gridLeft+weeks.length*STRIDE-GAP;
@@ -320,13 +352,17 @@ scroll.appendChild(svg);
 frame.appendChild(scroll);
 var leg=document.createElement('div');
 leg.className='cc-legend';
+var rows={};
 models.forEach(function(m){
+  var f=mfam(m);
+  var row=rows[f];
+  if(!row){row=rows[f]=document.createElement('div');row.className='cc-legend-row';leg.appendChild(row);}
   var span=document.createElement('span');
   var dot=document.createElement('i');
   dot.style.background=gc(m);
   span.appendChild(dot);
   span.appendChild(document.createTextNode(m+' ('+fmt(totals[m])+')'));
-  leg.appendChild(span);
+  row.appendChild(span);
 });
 frame.appendChild(leg);
 section.appendChild(frame);
