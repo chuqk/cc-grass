@@ -1,6 +1,6 @@
 {
   "name": "cc-grass",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "GitHub-style contribution grass SVG generator for Claude Code usage. Reads ~/.claude/projects/**/*.jsonl (and ~/.codex/sessions if present) and renders an orange grass graph for your README.",
   "type": "module",
   "bin": {
