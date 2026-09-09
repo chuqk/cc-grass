@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { parseClaudeProjects } from "./parse.js";
 import { defaultSinceFor, renderSvg, type Metric, type Theme } from "./svg.js";
 import { renderHtml } from "./html.js";
-import { estimateCost } from "./pricing.js";
+import { estimateCost, hasPricing } from "./pricing.js";
 
 const PKG = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -157,10 +157,10 @@ async function main(): Promise<void> {
     ? [...result.buckets.values()]
         .filter((b) => b.modelTokens.size > 0)
         .map((b) => {
-          const costs: Record<string, number> = {};
+          // null = no price known for that model on that day (shown as "price n/a").
+          const costs: Record<string, number | null> = {};
           for (const [model, bd] of b.modelBreakdown) {
-            const c = estimateCost(model, bd);
-            if (c > 0) costs[model] = c;
+            costs[model] = hasPricing(model, b.date) ? estimateCost(model, bd, b.date) : null;
           }
           return {
             date: b.date,

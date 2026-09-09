@@ -16,9 +16,9 @@
 全4種別を合算: `input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens`。subagents はデフォルト込み (`--no-include-subagents` で除外可)。
 
 Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` の累計値の差分で数える。
-方式の理由と請求対象の写し方は D-2026-003。GPT 系の単価は `pricing.ts` 未登録 (費用は出ない)。
+方式の理由と請求対象の写し方は D-2026-003。
 
-`--html` 出力の棒グラフツールチップにはモデル別の推定API費用を表示 (`src/pricing.ts` に単価テーブル)。
+`--html` 出力の棒グラフツールチップにはモデル別の推定API費用を表示。単価は `src/pricing.ts` に **モデル × 価格期間** で持ち (from/to 付き、改定は発効日から)、Anthropic・OpenAI とも一次情報 (公式 docs・発表記事・その archive) で確認した値だけ載せる (D-2026-004)。cache write は 5 分 / 1 時間 TTL を別単価 (1.25x / 2x)。単価不明のモデルは費用 0 でなく `price n/a` と出す。
 
 ## ソース構成
 
@@ -26,7 +26,7 @@ Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` �
 |---|---|
 | `src/parse.ts` | jsonl → 日別 bucket (トークン4種別 × モデル別)。Claude Code 形式と Codex rollout 形式の2パーサ。増分キャッシュ統合 |
 | `src/cache.ts` | ファイル単位の増分スキャンキャッシュ (mtime+size キー、`~/.cache/cc-grass/`) |
-| `src/pricing.ts` | モデル別 API 単価テーブル |
+| `src/pricing.ts` | モデル別 API 単価テーブル (価格期間付き・日付で検索・ID 正規化) |
 | `src/levels.ts` | 値 → 草レベル (0-4) の閾値計算 |
 | `src/svg.ts` | bucket → SVG 文字列 |
 | `src/html.ts` | SVG + 棒グラフ付き HTML ページ。配色は固定表 `PAL` + 系列別グラデ `RAMP` (新モデルは系列色を自動割当)。凡例は系列ごとに1行 |

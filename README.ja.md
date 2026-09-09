@@ -105,7 +105,7 @@ GitHub Actions の `workflow_dispatch` を手元から叩く方式でも、profi
 
 Codex CLI のセッション (`~/.codex/sessions/**/rollout-*.jsonl`) は各 `token_count` イベントの累計 `total_token_usage` の差分で数える (同じイベントが二重に記録されることがあるため)。`cached_input_tokens` は cache read に対応し、`input + cache_write + output` が課金合計。モデル名は `turn_context` から取る (例 `gpt-6-astra`)。
 
-`--html` 出力にはインタラクティブな棒グラフが含まれ、ツールチップにモデル別の推定 API コストが表示される。コストは各モデルの公開 per-MTok レートを使い、4 つのトークンカテゴリそれぞれの単価で算出される（cache read は安く、cache write はベース input より高い）。
+`--html` 出力にはインタラクティブな棒グラフが含まれ、ツールチップにモデル別の推定 API コストが表示される。コストは各モデルの公開 per-MTok レート (Anthropic・OpenAI とも一次情報のみ) を使い、トークン種別ごとの単価で算出される (cache read は安く、cache write はベース input より高く、1 時間 TTL の cache write は 5 分 TTL より高い)。単価は **期間付き** で持つので、ベンダーの改定 (例: GPT-5.6 Sol の 2026-08-21 値下げ) は発効日以降にだけ効き、過去の日を書き換えない。単価が分からないモデルは黙って $0 にせず `price n/a` と表示する。サブスクリプション利用 (Claude Pro/Max・ChatGPT Plus/Pro) ではこの額は請求されない — 同じ使用量を API 定価で買ったらいくらか、の換算値。
 
 なお `--metric prompts` は `type:"user"` で `content` が実際の人間プロンプト（tool_result じゃない）のものだけを数える。`--metric sessions` はその日にアクティブだった jsonl ファイル数。
 

@@ -105,7 +105,7 @@ Or wire it to a `gh workflow_dispatch` you trigger from your laptop, or just run
 
 Codex CLI sessions (`~/.codex/sessions/**/rollout-*.jsonl`) are counted from the cumulative `total_token_usage` in each `token_count` event, taking deltas so duplicated events are not double counted. `cached_input_tokens` maps to cache reads; `input + cache_write + output` is the billable total. The model is taken from `turn_context` (e.g. `gpt-6-astra`).
 
-The `--html` output includes an interactive bar chart with estimated API cost per model in the tooltip. Costs are calculated using each model's published per-MTok rates, applied to the four token categories at their respective prices (cache reads are cheaper, cache writes are more expensive than base input).
+The `--html` output includes an interactive bar chart with estimated API cost per model in the tooltip. Costs use each model's published per-MTok rates (Anthropic and OpenAI, primary sources only), applied to the token categories at their respective prices: cache reads are cheaper, cache writes cost more than base input, and 1-hour-TTL cache writes cost more than 5-minute ones. Rates are stored per **price period**, so a vendor price change (e.g. GPT-5.6 Sol's cut on 2026-08-21) applies only from its effective date and never rewrites earlier days. A model with no known rate shows `price n/a` instead of silently counting as $0. Subscription users (Claude Pro/Max, ChatGPT Plus/Pro) don't pay these amounts; they are what the same usage would cost at API list prices.
 
 For the curious, `--metric prompts` counts only `type:"user"` entries whose `message.content` is a real human prompt (not a tool result), and `--metric sessions` counts each jsonl file once per day it touched.
 

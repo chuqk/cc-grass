@@ -72,6 +72,11 @@ interface JsonlEntry {
       output_tokens?: number;
       cache_creation_input_tokens?: number;
       cache_read_input_tokens?: number;
+      // TTL split of cache_creation_input_tokens (1h writes cost 2x input vs 1.25x for 5m).
+      cache_creation?: {
+        ephemeral_5m_input_tokens?: number;
+        ephemeral_1h_input_tokens?: number;
+      };
     };
   };
 }
@@ -226,12 +231,13 @@ async function parseFileDays(
           const u = entry.message!.usage!;
           let bd = day.models[model];
           if (!bd) {
-            bd = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+            bd = { input: 0, output: 0, cacheWrite: 0, cacheWrite1h: 0, cacheRead: 0 };
             day.models[model] = bd;
           }
           bd.input += u.input_tokens ?? 0;
           bd.output += u.output_tokens ?? 0;
           bd.cacheWrite += u.cache_creation_input_tokens ?? 0;
+          bd.cacheWrite1h += u.cache_creation?.ephemeral_1h_input_tokens ?? 0;
           bd.cacheRead += u.cache_read_input_tokens ?? 0;
         }
       }
@@ -325,7 +331,7 @@ async function parseCodexFileDays(
         day.tokens += tk;
         let bd = day.models[model];
         if (!bd) {
-          bd = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+          bd = { input: 0, output: 0, cacheWrite: 0, cacheWrite1h: 0, cacheRead: 0 };
           day.models[model] = bd;
         }
         bd.input += Math.max(0, dIn - dCached);
@@ -438,12 +444,13 @@ export async function parseClaudeProjects(opts: ParseOptions = {}): Promise<Pars
         bucket.modelTokens.set(model, (bucket.modelTokens.get(model) ?? 0) + tk);
         let acc = bucket.modelBreakdown.get(model);
         if (!acc) {
-          acc = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+          acc = { input: 0, output: 0, cacheWrite: 0, cacheWrite1h: 0, cacheRead: 0 };
           bucket.modelBreakdown.set(model, acc);
         }
         acc.input += bd.input;
         acc.output += bd.output;
         acc.cacheWrite += bd.cacheWrite;
+        acc.cacheWrite1h += bd.cacheWrite1h ?? 0;
         acc.cacheRead += bd.cacheRead;
       }
 

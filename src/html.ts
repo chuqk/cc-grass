@@ -3,7 +3,8 @@ import type { Theme } from "./svg.js";
 export interface ChartDataEntry {
   date: string;
   models: Record<string, number>;
-  costs?: Record<string, number>;
+  /** USD per model; null = no unit price known for that model on that day */
+  costs?: Record<string, number | null>;
 }
 
 export interface HtmlOptions {
@@ -236,7 +237,9 @@ D.forEach(function(d){
     var n=norm(raw);wm[k][n]=(wm[k][n]||0)+d.models[raw];
   });
   if(d.costs){Object.keys(d.costs).forEach(function(raw){
-    var n=norm(raw);wcm[k][n]=(wcm[k][n]||0)+d.costs[raw];
+    var n=norm(raw),c=d.costs[raw];
+    if(c===null){if(!(n in wcm[k]))wcm[k][n]=null;return;}
+    wcm[k][n]=(wcm[k][n]||0)+c;
   });}
 });
 var allWeekKeys=[];
@@ -316,14 +319,15 @@ svg.addEventListener('mousemove',function(e){
     var hm=tgt.getAttribute('data-model');
     var w=weeks[wi];if(!w)return;
     var total=0;Object.keys(w.models).forEach(function(m){total+=w.models[m];});
-    var totalCost=0;Object.keys(w.costs).forEach(function(m){totalCost+=w.costs[m];});
-    var costStr=totalCost>0?' \\u2248 $'+totalCost.toFixed(2):'';
+    var totalCost=0,unpriced=0;
+    Object.keys(w.costs).forEach(function(m){if(w.costs[m]===null)unpriced++;else totalCost+=w.costs[m];});
+    var costStr=totalCost>0?' \\u2248 $'+totalCost.toFixed(2)+(unpriced?'+':''):'';
     var lines=[w.week+' \\u2014 '+fmt(total)+' tokens'+costStr];
     models.forEach(function(m){
       if(!w.models[m])return;
       var pct=Math.round(w.models[m]/total*100);
-      var mc=w.costs[m]||0;
-      var mcStr=mc>0?' $'+mc.toFixed(2):'';
+      var mc=w.costs[m];
+      var mcStr=mc===null?' (price n/a)':(mc>0?' $'+mc.toFixed(2):'');
       var pre=m===hm?'\\u25b8 ':'  ';
       lines.push(pre+m+': '+fmt(w.models[m])+' ('+pct+'%)'+mcStr);
     });

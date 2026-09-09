@@ -25,7 +25,8 @@ export interface ScanCache {
   files: Record<string, CachedFileEntry>;
 }
 
-export const CACHE_VERSION = 1;
+// v2: TokenBreakdown gained cacheWrite1h (1h-TTL subset of cacheWrite).
+export const CACHE_VERSION = 2;
 
 export function defaultCacheDir(): string {
   if (process.platform === "win32") {

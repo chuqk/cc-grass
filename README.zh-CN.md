@@ -105,7 +105,7 @@ cc-grass 故意不内置调度器，自己挑顺手的方式：
 
 Codex CLI 会话（`~/.codex/sessions/**/rollout-*.jsonl`）按每个 `token_count` 事件中累计 `total_token_usage` 的增量统计（同一事件可能被重复记录）。`cached_input_tokens` 对应 cache read，`input + cache_write + output` 为计费总量。模型名取自 `turn_context`（如 `gpt-6-astra`）。
 
-`--html` 输出包含交互式柱状图，tooltip 中显示按模型估算的 API 费用。费用按各模型公布的 per-MTok 费率计算，四类 token 各自适用对应单价（cache read 较便宜，cache write 比基础 input 更贵）。
+`--html` 输出包含交互式柱状图，tooltip 中显示按模型估算的 API 费用。费用按各模型公布的 per-MTok 费率计算（Anthropic 与 OpenAI，仅采用官方一手来源），各类 token 各自适用对应单价：cache read 较便宜，cache write 比基础 input 更贵，1 小时 TTL 的 cache write 比 5 分钟的更贵。费率按**价格期间**存储，厂商调价（例如 GPT-5.6 Sol 于 2026-08-21 降价）只从生效日起适用，不会改写之前的日期。没有已知费率的模型显示 `price n/a`，而不是悄悄计为 $0。订阅用户（Claude Pro/Max、ChatGPT Plus/Pro）不会被收取这些金额；它们是同等用量按 API 标价折算的费用。
 
 `--metric prompts` 只数 `type:"user"` 且 `content` 是真实人类 prompt（不是 tool_result）的条目；`--metric sessions` 数当天活跃过的 jsonl 文件数。
 

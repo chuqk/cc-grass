@@ -105,7 +105,7 @@ GitHub Actions의 `workflow_dispatch`를 로컬에서 트리거하거나, profil
 
 Codex CLI 세션(`~/.codex/sessions/**/rollout-*.jsonl`)은 각 `token_count` 이벤트의 누적 `total_token_usage` 차분으로 셉니다 (같은 이벤트가 두 번 기록될 수 있기 때문). `cached_input_tokens`는 cache read에 해당하고, `input + cache_write + output`이 과금 합계입니다. 모델명은 `turn_context`에서 가져옵니다 (예: `gpt-6-astra`).
 
-`--html` 출력에는 인터랙티브 막대 그래프가 포함되며, 툴팁에 모델별 추정 API 비용이 표시됩니다. 비용은 각 모델의 공개 per-MTok 요금을 사용하여, 4가지 토큰 카테고리 각각의 단가로 산출됩니다 (cache read는 저렴하고, cache write는 기본 input보다 비쌈).
+`--html` 출력에는 인터랙티브 막대 그래프가 포함되며, 툴팁에 모델별 추정 API 비용이 표시됩니다. 비용은 각 모델의 공개 per-MTok 요금 (Anthropic·OpenAI 모두 1차 출처만) 을 사용하여 토큰 종류별 단가로 산출됩니다 (cache read는 저렴하고, cache write는 기본 input보다 비싸며, 1시간 TTL cache write는 5분 TTL보다 비쌈). 요금은 **가격 기간** 단위로 저장되므로, 벤더의 가격 변경 (예: GPT-5.6 Sol의 2026-08-21 인하) 은 발효일 이후에만 적용되고 과거 날짜를 다시 쓰지 않습니다. 요금을 알 수 없는 모델은 조용히 $0으로 계산하지 않고 `price n/a`로 표시합니다. 구독 사용자 (Claude Pro/Max, ChatGPT Plus/Pro) 에게는 이 금액이 청구되지 않습니다 — 같은 사용량을 API 정가로 환산한 값입니다.
 
 `--metric prompts`는 `type:"user"`이면서 `content`가 실제 사람 프롬프트인 (tool_result가 아닌) 항목만 카운트합니다. `--metric sessions`는 그 날 활동이 있었던 jsonl 파일 수.
 
