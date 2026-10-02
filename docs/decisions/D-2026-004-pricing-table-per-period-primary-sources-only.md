@@ -58,7 +58,8 @@ summary: API 単価は「モデル × 価格期間」で持ち、日付で引く
 - 9 月の費用は 1 日 $350〜$2,000、年間合計は API 換算で約 $124k (本人は定額プランなので実請求ではない。README に注記)
 - 新モデルの手動発見を前提にしていた運用は Amendment 1 で撤回。Pages 更新時に公式表から自動登録する
 - D-2026-003 の「GPT 系の単価は載せない」は Amendment 1 で撤回
-- `tests/pricing.test.ts` がログに現れる全モデルの現行単価存在・期間境界・TTL 別計算を固定する
+- `tests/pricing.test.ts` は既知モデルの単価・期間境界・TTL 別計算を固定する。
+  新モデルの自動登録・取得失敗時の保持は `tests/pricing-sync.test.ts` で検証する (Amendment 1)
 
 ## Revisit when
 
