@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { estimateCost, getPricing, hasPricing, pricingKey } from "../src/pricing.js";
+import { estimateCost, getPricing, hasPricing, pricingKey, readPricingFile } from "../src/pricing.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 const M = 1_000_000;
 
@@ -13,7 +16,7 @@ test("pricingKey: exact, dated snapshot, -latest, and effort suffix all resolve"
   assert.equal(pricingKey("no-such-model"), null);
 });
 
-test("every model that shows up in Claude Code / Codex logs has a current price", () => {
+test("bundled September 9 model snapshot has current prices", () => {
   for (const id of [
     "claude-fable-5-1", "claude-fable-5", "claude-opus-5", "claude-opus-4-8", "claude-opus-4-7",
     "claude-opus-4-6", "claude-opus-4-5-20251101", "claude-sonnet-5", "claude-sonnet-4-6",
@@ -23,6 +26,33 @@ test("every model that shows up in Claude Code / Codex logs has a current price"
   ]) {
     assert.ok(hasPricing(id, "2026-09-09"), `${id} has no price on 2026-09-09`);
   }
+});
+
+test("September releases have their own verified rates, including cache reads", () => {
+  assert.equal(getPricing("claude-opus-5-5-20260922")!.cacheRead, 0.2);
+  assert.equal(getPricing("claude-opus-5-5")!.input, 4);
+  assert.equal(getPricing("claude-sonnet-5-5")!.output, 10);
+  assert.equal(getPricing("gpt-6.1-sol-ultra")!.cacheRead, 0.1);
+  assert.equal(getPricing("gpt-6-sol")!.cacheRead, 0.2);
+  assert.equal(getPricing("gpt-6-luna")!.cacheWrite, 0.125);
+});
+
+test("offline catalogs resolve new model snapshots and reject invalid price periods", () => {
+  const file = join(mkdtempSync(join(tmpdir(), "cc-grass-price-")), "pricing.json");
+  const period = { from: "2026-10-02", input: 2, output: 10, cacheWrite: 2.5, cacheWrite1h: 2.5,
+    cacheRead: 0.1, source: "https://developers.openai.com/api/docs/pricing.md" };
+  const save = (periods: object[]) => writeFileSync(file, JSON.stringify({ version: 1, models: { "gpt-future": periods } }));
+  save([period]);
+  const catalog = readPricingFile(file);
+  assert.equal(getPricing("gpt-future-high", "2026-10-01", catalog)!.input, 2);
+  assert.equal(getPricing("gpt-5.6-sol", "2026-08-20", catalog)!.input, 5);
+  assert.equal(getPricing("gpt-future"), null); // no process-global mutation
+  for (const changes of [{ input: -1 }, { cacheRead: "0.1" }, { from: "2026-02-30" }, { source: "https://example.com/pricing" }]) {
+    save([{ ...period, ...changes }]);
+    assert.throws(() => readPricingFile(file), /Invalid pricing period/);
+  }
+  save([period, { ...period, from: "2026-10-03" }]);
+  assert.throws(() => readPricingFile(file), /Invalid pricing period/);
 });
 
 test("period lookup: GPT-5.6 Sol price cut on 2026-08-21", () => {

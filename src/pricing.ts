@@ -17,6 +17,8 @@
 //   - long-context premiums (Claude 4.6-era >200K beta, GPT >272K: 2x in / 1.5x out)
 //   - Anthropic fast mode (`speed: "fast"`), Batch / Flex / Priority tiers
 
+import { readFileSync } from "node:fs";
+
 export interface ModelPricing {
   input: number;
   output: number;
@@ -30,6 +32,39 @@ export interface ModelPricing {
 export interface PricePeriod extends ModelPricing {
   from: string;
   to?: string;
+  source?: string;
+}
+
+export type PricingCatalog = Record<string, PricePeriod[]>;
+
+/** Load an explicitly selected, offline catalog. Reject malformed data atomically. */
+export function readPricingFile(file: string): PricingCatalog {
+  const data = JSON.parse(readFileSync(file, "utf8"));
+  if (data?.version !== 1 || !data.models || typeof data.models !== "object" || Array.isArray(data.models)) {
+    throw new Error("Invalid pricing catalog: expected version 1 and models");
+  }
+  const catalog: PricingCatalog = Object.create(null);
+  const validDate = (value: unknown): value is string =>
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+  for (const [model, periods] of Object.entries(data.models)) {
+    if (!/^[a-z0-9][a-z0-9.-]*$/.test(model) || !Array.isArray(periods) || periods.length === 0) {
+      throw new Error(`Invalid pricing catalog model: ${model}`);
+    }
+    let previous: PricePeriod | undefined;
+    for (const p of periods) {
+      if (!p || !validDate(p.from) || (p.to !== undefined && (!validDate(p.to) || p.to < p.from)) ||
+          ["input", "output", "cacheWrite", "cacheWrite1h", "cacheRead"].some(
+            (key) => typeof p[key] !== "number" || !Number.isFinite(p[key]) || p[key] < 0,
+          ) || (previous && (previous.to === undefined || previous.to >= p.from)) ||
+          typeof p.source !== "string" || !/^https:\/\/(platform\.claude\.com|developers\.openai\.com)\//.test(p.source)) {
+        throw new Error(`Invalid pricing period: ${model}`);
+      }
+      previous = p;
+    }
+    catalog[model] = periods;
+  }
+  return catalog;
 }
 
 // Anthropic multipliers: 5m write 1.25x, 1h write 2x, read 0.1x (Fable 5.1 / Mythos 5.1: 0.025x).
@@ -64,6 +99,9 @@ const PRICING: Record<string, PricePeriod[]> = {
   "claude-mythos-5-1": [{ from: "2026-09-01", ...FABLE_51 }],
   "claude-fable-5":    [{ from: "2026-06-09", ...FABLE }],
   "claude-mythos-5":   [{ from: "2026-06-09", ...FABLE }],
+  // https://platform.claude.com/docs/en/release-notes/overview (2026-09-22)
+  // https://platform.claude.com/docs/en/about-claude/pricing (verified 2026-10-02)
+  "claude-opus-5-5":   [{ from: "2026-09-22", ...A(4, 20, 0.2) }],
   "claude-opus-5":     [{ from: "2026-07-24", ...OPUS }],
   "claude-opus-4-8":   [{ from: "2026-05-28", ...OPUS }],
   "claude-opus-4-7":   [{ from: "2026-04-16", ...OPUS }],
@@ -73,6 +111,8 @@ const PRICING: Record<string, PricePeriod[]> = {
   "claude-opus-4-0":   [{ from: "2025-05-22", to: "2026-06-15", ...OPUS_LEGACY }],
   "claude-opus-4":     [{ from: "2025-05-22", to: "2026-06-15", ...OPUS_LEGACY }],
   "claude-sonnet-5":   [{ from: "2026-06-30", ...SONNET_5 }],
+  // https://platform.claude.com/docs/en/release-notes/overview (2026-09-28)
+  "claude-sonnet-5-5": [{ from: "2026-09-28", ...SONNET_5 }],
   "claude-sonnet-4-6": [{ from: "2026-02-17", ...SONNET }],
   "claude-sonnet-4-5": [{ from: "2025-09-29", ...SONNET }],
   "claude-sonnet-4-0": [{ from: "2025-05-22", to: "2026-06-15", ...SONNET }],
@@ -91,6 +131,11 @@ const PRICING: Record<string, PricePeriod[]> = {
 
   // ---- OpenAI (Codex CLI) -------------------------------------------------
   "gpt-6-astra": [{ from: "2026-09-03", ...G(10, 50, 1, 12.5) }],
+  // https://developers.openai.com/api/docs/changelog (2026-09-22 and 2026-09-29)
+  // https://developers.openai.com/api/docs/pricing (verified 2026-10-02)
+  "gpt-6-sol":   [{ from: "2026-09-22", ...G(2, 10, 0.2, 2.5) }],
+  "gpt-6-luna":  [{ from: "2026-09-22", ...G(0.1, 0.5, 0.01, 0.125) }],
+  "gpt-6.1-sol": [{ from: "2026-09-29", ...G(2, 10, 0.1, 2.5) }],
   // GPT-5.6 Sol: launch price, then a 20% cut on 2026-08-21
   // (community.openai.com/t/20-price-reduction-for-gpt-5-6-sol-api-codex-credits-and-chatgpt-work/1391726).
   "gpt-5.6-sol": [
@@ -131,20 +176,23 @@ const PRICING: Record<string, PricePeriod[]> = {
 // Map a logged model id to a pricing key. Claude ids may carry a dated snapshot
 // suffix or `-latest` (claude-opus-4-5-20251101 → claude-opus-4-5); Codex slugs
 // may carry a reasoning-effort suffix (gpt-5.4-high → gpt-5.4).
-export function pricingKey(modelId: string): string | null {
-  if (PRICING[modelId]) return modelId;
-  const undated = modelId.replace(/-(\d{8}|latest)$/, "");
-  if (PRICING[undated]) return undated;
-  const noEffort = modelId.replace(/-(minimal|low|medium|high|xhigh|max)$/, "");
-  if (PRICING[noEffort]) return noEffort;
+export function normalizePricingId(modelId: string): string {
+  return modelId.replace(/-(none|minimal|low|medium|high|xhigh|max|ultra)$/, "")
+    .replace(/-(\d{8}|latest)$/, "");
+}
+
+export function pricingKey(modelId: string, catalog?: PricingCatalog): string | null {
+  for (const key of [modelId, normalizePricingId(modelId)]) {
+    if (Object.hasOwn(catalog ?? {}, key) || Object.hasOwn(PRICING, key)) return key;
+  }
   return null;
 }
 
 /** Price in force on `date` (YYYY-MM-DD). Without a date, the current (or last) price. */
-export function getPricing(modelId: string, date?: string): ModelPricing | null {
-  const key = pricingKey(modelId);
+export function getPricing(modelId: string, date?: string, catalog?: PricingCatalog): ModelPricing | null {
+  const key = pricingKey(modelId, catalog);
   if (!key) return null;
-  const periods = PRICING[key];
+  const periods = catalog?.[key] ?? PRICING[key];
   if (date === undefined) {
     return periods.find((p) => p.to === undefined) ?? periods[periods.length - 1];
   }
@@ -157,8 +205,8 @@ export function getPricing(modelId: string, date?: string): ModelPricing | null 
   return date < first.from ? first : null;
 }
 
-export function hasPricing(modelId: string, date?: string): boolean {
-  return getPricing(modelId, date) !== null;
+export function hasPricing(modelId: string, date?: string, catalog?: PricingCatalog): boolean {
+  return getPricing(modelId, date, catalog) !== null;
 }
 
 /** All pricing keys (for docs / tests). */
@@ -176,8 +224,8 @@ export interface TokenBreakdown {
   cacheRead: number;
 }
 
-export function estimateCost(model: string, tokens: TokenBreakdown, date?: string): number {
-  const p = getPricing(model, date);
+export function estimateCost(model: string, tokens: TokenBreakdown, date?: string, catalog?: PricingCatalog): number {
+  const p = getPricing(model, date, catalog);
   if (!p) return 0;
   const write1h = Math.min(tokens.cacheWrite1h ?? 0, tokens.cacheWrite);
   const write5m = tokens.cacheWrite - write1h;

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { defaultSinceFor } from "../src/svg.js";
 
@@ -25,6 +25,24 @@ function run(args: string[]) {
     { encoding: "utf8" },
   );
 }
+
+test("cli: --pricing-file prices a newly encountered model without modifying bundled rates", () => {
+  const directory = mkdtempSync(join(tmpdir(), "cc-grass-cli-price-"));
+  const project = join(directory, "projects", "test");
+  mkdirSync(project, { recursive: true });
+  writeFileSync(join(project, "session.jsonl"), JSON.stringify({ type: "assistant", timestamp: "2026-10-02T12:00:00Z",
+    message: { id: "future-response", model: "gpt-future", usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 } } }) + "\n");
+  const catalog = join(directory, "pricing.json");
+  writeFileSync(catalog, JSON.stringify({ version: 1, models: { "gpt-future": [{ from: "2026-10-02", input: 2, output: 10,
+    cacheWrite: 2.5, cacheWrite1h: 2.5, cacheRead: 0.1, source: "https://developers.openai.com/api/docs/pricing.md" }] } }));
+  const args = [CLI, "--claude-dir", directory, "--no-codex", "--no-cache", "--html", "--since", "2026-10-02", "--until", "2026-10-02"];
+  const priced = spawnSync("node", [...args, "--pricing-file", catalog], { encoding: "utf8" });
+  assert.equal(priced.status, 0, priced.stderr);
+  assert.match(priced.stdout, /"costs":\{"gpt-future":12\}/);
+  const offline = spawnSync("node", args, { encoding: "utf8" });
+  assert.equal(offline.status, 0, offline.stderr);
+  assert.match(offline.stdout, /"costs":\{"gpt-future":null\}/);
+});
 
 test("cli: --version matches package.json", () => {
   const r = spawnSync("node", [CLI, "--version"], { encoding: "utf8" });

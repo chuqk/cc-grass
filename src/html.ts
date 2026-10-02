@@ -238,7 +238,8 @@ D.forEach(function(d){
   });
   if(d.costs){Object.keys(d.costs).forEach(function(raw){
     var n=norm(raw),c=d.costs[raw];
-    if(c===null){if(!(n in wcm[k]))wcm[k][n]=null;return;}
+    if(c===null){wcm[k][n]=null;return;}
+    if(wcm[k][n]===null)return;
     wcm[k][n]=(wcm[k][n]||0)+c;
   });}
 });

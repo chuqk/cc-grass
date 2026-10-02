@@ -60,6 +60,7 @@ README に貼る:
 | `--include-subagents` | on | サブエージェントの jsonl も合算（`--no-include-subagents` で除外） |
 | `--no-cache` | キャッシュ on | 増分キャッシュを使わず毎回全ファイルを走査 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | キャッシュの保存先を変更（Windows は `%LOCALAPPDATA%\cc-grass\Cache`） |
+| `--pricing-file <path>` | 組み込み単価 | 検証済みのオフライン価格カタログを追加で読み込む |
 | `--html` | off | hover ツールチップが効く HTML として出力 |
 | `--version`, `-v` | — | バージョン表示 |
 | `--help`, `-h` | — | ヘルプ |
@@ -104,6 +105,8 @@ GitHub Actions の `workflow_dispatch` を手元から叩く方式でも、profi
 1 日あたりの `tokens` = その日（ローカル時刻）の各エントリの 4 つの `usage` フィールドの合計: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`。API が課金する全トークンを数える。サブエージェントの jsonl はデフォルトで含まれる。`--no-include-subagents` を渡すと除外できる（Claude Code の `/usage` の数字と一致する）。
 
 Codex CLI のセッション (`~/.codex/sessions/**/rollout-*.jsonl`) は各 `token_count` イベントの累計 `total_token_usage` の差分で数える (同じイベントが二重に記録されることがあるため)。`cached_input_tokens` は cache read に対応し、`input + cache_write + output` が課金合計。モデル名は `turn_context` から取る (例 `gpt-6-astra`)。
+
+価格を自動追従させるには、ソース checkout で `npm run build && node scripts/sync-pricing.mjs` を実行し、HTML 生成時に `--pricing-file ~/.cache/cc-grass/pricing.json` を渡す。Windows の既定パスは上のキャッシュ保存先を参照。補助スクリプトは公式の Standard 価格表を1日ごと・新モデル検出時に確認し、新モデルを自動登録する。取得に失敗したら最後の検証済み価格を保持する。既存モデルの改定は発効日を確認して期間を追記し、過去分は上書きしない。CLI 自体は通信しない。詳細は [pricing maintenance](docs/pricing-maintenance.md)。
 
 `--html` 出力にはインタラクティブな棒グラフが含まれ、ツールチップにモデル別の推定 API コストが表示される。コストは各モデルの公開 per-MTok レート (Anthropic・OpenAI とも一次情報のみ) を使い、トークン種別ごとの単価で算出される (cache read は安く、cache write はベース input より高く、1 時間 TTL の cache write は 5 分 TTL より高い)。単価は **期間付き** で持つので、ベンダーの改定 (例: GPT-5.6 Sol の 2026-08-21 値下げ) は発効日以降にだけ効き、過去の日を書き換えない。単価が分からないモデルは黙って $0 にせず `price n/a` と表示する。サブスクリプション利用 (Claude Pro/Max・ChatGPT Plus/Pro) ではこの額は請求されない — 同じ使用量を API 定価で買ったらいくらか、の換算値。
 

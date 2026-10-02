@@ -60,6 +60,7 @@ README에 붙이기:
 | `--include-subagents` | on | subagent jsonl 도 합산 (`--no-include-subagents`로 제외) |
 | `--no-cache` | 캐시 on | 증분 캐시를 쓰지 않고 매번 전체 파일을 스캔 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | 캐시 저장 위치 변경 (Windows는 `%LOCALAPPDATA%\cc-grass\Cache`) |
+| `--pricing-file <path>` | 내장 요금 | 검증된 오프라인 가격 카탈로그를 추가로 읽기 |
 | `--html` | off | hover tooltip이 작동하는 최소 HTML 페이지로 출력 |
 | `--version`, `-v` | — | 버전 출력 |
 | `--help`, `-h` | — | 도움말 |
@@ -104,6 +105,8 @@ GitHub Actions의 `workflow_dispatch`를 로컬에서 트리거하거나, profil
 하루치 `tokens` = 그 날 (로컬 시간) 각 항목의 4개 `usage` 필드 합: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`. API가 과금하는 모든 토큰을 셉니다. subagent jsonl은 기본 포함; `--no-include-subagents`를 전달하면 제외됩니다 (Claude Code `/usage` 숫자와 일치).
 
 Codex CLI 세션(`~/.codex/sessions/**/rollout-*.jsonl`)은 각 `token_count` 이벤트의 누적 `total_token_usage` 차분으로 셉니다 (같은 이벤트가 두 번 기록될 수 있기 때문). `cached_input_tokens`는 cache read에 해당하고, `input + cache_write + output`이 과금 합계입니다. 모델명은 `turn_context`에서 가져옵니다 (예: `gpt-6-astra`).
+
+가격을 자동으로 갱신하려면 소스 checkout에서 `npm run build && node scripts/sync-pricing.mjs`를 실행한 뒤 HTML 생성 시 `--pricing-file ~/.cache/cc-grass/pricing.json`을 전달합니다 (Windows 경로는 위 캐시 위치 참조). 보조 스크립트는 공식 Standard 가격표를 매일 및 새 모델 발견 시 확인하고 새 모델을 자동 등록합니다. 통신 실패 시 마지막으로 검증된 가격을 유지합니다. 기존 가격 변경은 발효일을 검증해 기간을 추가하며 과거 요금을 덮어쓰지 않습니다. CLI 자체는 네트워크 요청을 하지 않습니다. 자세한 내용은 [pricing maintenance](docs/pricing-maintenance.md)를 참고하세요.
 
 `--html` 출력에는 인터랙티브 막대 그래프가 포함되며, 툴팁에 모델별 추정 API 비용이 표시됩니다. 비용은 각 모델의 공개 per-MTok 요금 (Anthropic·OpenAI 모두 1차 출처만) 을 사용하여 토큰 종류별 단가로 산출됩니다 (cache read는 저렴하고, cache write는 기본 input보다 비싸며, 1시간 TTL cache write는 5분 TTL보다 비쌈). 요금은 **가격 기간** 단위로 저장되므로, 벤더의 가격 변경 (예: GPT-5.6 Sol의 2026-08-21 인하) 은 발효일 이후에만 적용되고 과거 날짜를 다시 쓰지 않습니다. 요금을 알 수 없는 모델은 조용히 $0으로 계산하지 않고 `price n/a`로 표시합니다. 구독 사용자 (Claude Pro/Max, ChatGPT Plus/Pro) 에게는 이 금액이 청구되지 않습니다 — 같은 사용량을 API 정가로 환산한 값입니다.
 

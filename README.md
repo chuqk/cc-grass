@@ -60,6 +60,7 @@ Then paste into your README:
 | `--include-subagents` | on | Count subagent jsonl files (use `--no-include-subagents` to exclude) |
 | `--no-cache` | cache on | Re-scan every file instead of using the incremental cache |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | Override the cache location (`%LOCALAPPDATA%\cc-grass\Cache` on Windows) |
+| `--pricing-file <path>` | bundled rates | Load an additional verified, offline pricing catalog |
 | `--html` | off | Wrap the SVG in a minimal HTML page so hover tooltips work |
 | `--version`, `-v` | — | Print version |
 | `--help`, `-h` | — | Show help |
@@ -108,6 +109,8 @@ Codex CLI sessions (`~/.codex/sessions/**/rollout-*.jsonl`) are counted from the
 The `--html` output includes an interactive bar chart with estimated API cost per model in the tooltip. Costs use each model's published per-MTok rates (Anthropic and OpenAI, primary sources only), applied to the token categories at their respective prices: cache reads are cheaper, cache writes cost more than base input, and 1-hour-TTL cache writes cost more than 5-minute ones. Rates are stored per **price period**, so a vendor price change (e.g. GPT-5.6 Sol's cut on 2026-08-21) applies only from its effective date and never rewrites earlier days. A model with no known rate shows `price n/a` instead of silently counting as $0. Subscription users (Claude Pro/Max, ChatGPT Plus/Pro) don't pay these amounts; they are what the same usage would cost at API list prices.
 
 For the curious, `--metric prompts` counts only `type:"user"` entries whose `message.content` is a real human prompt (not a tool result), and `--metric sessions` counts each jsonl file once per day it touched.
+
+For a self-updating HTML page, run `npm run build && node scripts/sync-pricing.mjs` from a checkout before rendering with `--pricing-file ~/.cache/cc-grass/pricing.json` (use the Windows cache location above on Windows). The helper checks official Anthropic/OpenAI Standard pricing tables daily and immediately when a new model appears in local logs. New models are registered automatically, with the first verified rate also used for preview usage. It keeps the last verified catalog on network failures and records unpublished models and existing-price changes for maintenance. A changed existing price requires a verified effective date; historical rates remain intact. The CLI itself makes no network requests. See [pricing maintenance](docs/pricing-maintenance.md).
 
 ## Programmatic API
 

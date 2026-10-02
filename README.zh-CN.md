@@ -60,6 +60,7 @@ npx cc-grass --html --output grass.html
 | `--include-subagents` | on | 同时统计 subagent jsonl（用 `--no-include-subagents` 排除） |
 | `--no-cache` | 缓存 on | 不使用增量缓存，每次扫描全部文件 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | 更改缓存位置（Windows 为 `%LOCALAPPDATA%\cc-grass\Cache`） |
+| `--pricing-file <path>` | 内置价格 | 加载额外的已验证离线价格目录 |
 | `--html` | off | 包成最小 HTML 页面，hover tooltip 可用 |
 | `--version`, `-v` | — | 版本号 |
 | `--help`, `-h` | — | 帮助 |
@@ -104,6 +105,8 @@ cc-grass 故意不内置调度器，自己挑顺手的方式：
 每天的 `tokens` = 当天（本地时区）所有条目的四个 `usage` 字段之和: `input_tokens` + `output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`。统计 API 会计费的全部 token。subagent jsonl 默认包含；传 `--no-include-subagents` 可排除（与 Claude Code `/usage` 数字一致）。
 
 Codex CLI 会话（`~/.codex/sessions/**/rollout-*.jsonl`）按每个 `token_count` 事件中累计 `total_token_usage` 的增量统计（同一事件可能被重复记录）。`cached_input_tokens` 对应 cache read，`input + cache_write + output` 为计费总量。模型名取自 `turn_context`（如 `gpt-6-astra`）。
+
+如需自动跟踪价格，在源码 checkout 中运行 `npm run build && node scripts/sync-pricing.mjs`，再用 `--pricing-file ~/.cache/cc-grass/pricing.json` 生成 HTML（Windows 路径参见上面的缓存位置）。辅助脚本每天及发现新模型时检查官方 Standard 价格表，自动登记新模型；请求失败时保留最后验证的价格。已有模型调价需要核实生效日期后追加价格期间，不会覆盖历史费率。CLI 本身不发送网络请求。详情见 [pricing maintenance](docs/pricing-maintenance.md)。
 
 `--html` 输出包含交互式柱状图，tooltip 中显示按模型估算的 API 费用。费用按各模型公布的 per-MTok 费率计算（Anthropic 与 OpenAI，仅采用官方一手来源），各类 token 各自适用对应单价：cache read 较便宜，cache write 比基础 input 更贵，1 小时 TTL 的 cache write 比 5 分钟的更贵。费率按**价格期间**存储，厂商调价（例如 GPT-5.6 Sol 于 2026-08-21 降价）只从生效日起适用，不会改写之前的日期。没有已知费率的模型显示 `price n/a`，而不是悄悄计为 $0。订阅用户（Claude Pro/Max、ChatGPT Plus/Pro）不会被收取这些金额；它们是同等用量按 API 标价折算的费用。
 

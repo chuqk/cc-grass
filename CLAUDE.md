@@ -21,6 +21,7 @@ Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` �
 `--html` 出力の棒グラフツールチップにはモデル別の推定API費用を表示。単価表は `src/pricing.ts`:
 - モデル × 価格期間 (from/to) で持ち、その日に有効な単価で計算。改定は行を足す (上書きしない)
 - 載せるのは一次情報 (公式 docs・発表記事・その archive) で確認した値だけ。単価不明は `price n/a` と出す (D-2026-004)
+- 新モデルの価格は Pages 更新時に公式表から自動登録する。同期・例外処理は `docs/pricing-maintenance.md` を参照
 
 ## ソース構成
 

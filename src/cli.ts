@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { parseClaudeProjects } from "./parse.js";
 import { defaultSinceFor, renderSvg, type Metric, type Theme } from "./svg.js";
 import { renderHtml } from "./html.js";
-import { estimateCost, hasPricing } from "./pricing.js";
+import { estimateCost, hasPricing, readPricingFile } from "./pricing.js";
 
 const PKG = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -30,6 +30,7 @@ Options:
   --no-include-subagents               Exclude subagent jsonl files
   --no-cache                           Re-scan every file (skip the incremental cache)
   --cache-dir <path>                   Override cache directory (default: ~/.cache/cc-grass)
+  --pricing-file <path>                Load a verified offline pricing catalog
   --html                               Output HTML page (with hover tooltips)
   --version, -v                        Print version and exit
   --help, -h                           Show this help
@@ -85,6 +86,7 @@ async function main(): Promise<void> {
         "include-subagents": { type: "boolean", default: true },
         cache: { type: "boolean", default: true },
         "cache-dir": { type: "string" },
+        "pricing-file": { type: "string" },
         html: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", short: "v", default: false },
@@ -132,6 +134,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
+  const pricing = values["pricing-file"] ? readPricingFile(values["pricing-file"]) : undefined;
   const result = await parseClaudeProjects({
     claudeDir: values["claude-dir"],
     codexDir: values["codex-dir"],
@@ -160,7 +163,7 @@ async function main(): Promise<void> {
           // null = no price known for that model on that day (shown as "price n/a").
           const costs: Record<string, number | null> = {};
           for (const [model, bd] of b.modelBreakdown) {
-            costs[model] = hasPricing(model, b.date) ? estimateCost(model, bd, b.date) : null;
+            costs[model] = hasPricing(model, b.date, pricing) ? estimateCost(model, bd, b.date, pricing) : null;
           }
           return {
             date: b.date,
