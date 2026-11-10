@@ -60,10 +60,41 @@ npx cc-grass --html --output grass.html
 | `--include-subagents` | on | 同时统计 subagent jsonl（用 `--no-include-subagents` 排除） |
 | `--no-cache` | 缓存 on | 不使用增量缓存，每次扫描全部文件 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | 更改缓存位置（Windows 为 `%LOCALAPPDATA%\cc-grass\Cache`） |
+| `--archive-catalog <path>` | — | 按这份 JSONL 清单继续统计已移到别处的会话记录（可重复指定）。见[已归档的会话记录](#已归档的会话记录) |
 | `--pricing-file <path>` | 内置价格 | 加载额外的已验证离线价格目录 |
 | `--html` | off | 包成最小 HTML 页面，hover tooltip 可用 |
 | `--version`, `-v` | — | 版本号 |
 | `--help`, `-h` | — | 帮助 |
+
+## 已归档的会话记录
+
+如果把旧的会话记录（transcript）从 `~/.claude/projects` 或 `~/.codex` 移到别处（NAS、冷存储等），下次运行时它们通常会从草图里消失。传入一份记录了移走内容的清单（catalog），那些天的数据就会保留：
+
+```bash
+cc-grass --archive-catalog ~/archive/catalog.jsonl -o grass.svg
+```
+
+清单是 JSONL 格式，每条移走的会话记录占一行：
+
+| 字段 | 必填 | 含义 |
+|---|---|---|
+| `source_path` | 是 | 会话记录移走之前的绝对路径（例如 `/home/me/.claude/projects/<project>/<session>.jsonl`）。指向扫描范围以外文件夹的行会被忽略。 |
+| `nas_path` | 是 | 归档副本：`.jsonl` 文件本身（允许 `.gz`），或在设置了 `member` 时为 tar / `.tar.gz` 打包文件。相对路径以清单文件所在的文件夹为基准解析。 |
+| `member` | 否 | 打包文件内会话记录的名称。其附属文件夹（subagent 日志）从同一打包文件的 `<member without .jsonl>/` 下读取。 |
+| `nas_dir_archive` | 否 | 会话记录附属文件夹 `<session>/`（subagent 日志）的 tar / `.tar.gz`，其中成员路径相对于该文件夹。 |
+| `mtime` | 否 | 会话记录被移走时的修改时间（ISO 8601）。如果缓存只见过更旧的版本，会重新读取归档副本。 |
+
+其他字段会被忽略。同一个 `source_path` 出现多次时，以最后一行为准。
+
+行为说明：
+
+- 移走的会话记录继续从缓存中统计，因此正常运行完全不会访问归档。
+- 缓存里没有时（首次运行、缓存被删除、缓存格式升级），会从归档副本读回一次并重新缓存。
+- 如果归档副本无法读取（例如 NAS 未挂载），cc-grass 会提示有多少条会话记录读取失败，仍然写出输出，并以退出码 3 结束。不完整的结果不会写入缓存，下次运行会重试。因此使用 `set -e` 的脚本会跳过那一次的发布。
+- 清单中没有对应行就消失的会话记录（被删除或重命名）会像以前一样不再统计。移走的会话记录被复制回原路径时，只统计一次。
+- 尚不存在的清单文件按空清单处理（并在 stderr 输出提示）。
+- 清单模式使用独立的缓存文件，因此带与不带 `--archive-catalog` 的运行不会互相抵消。
+- 编程使用：`parseClaudeProjects({ archiveCatalog: "/path/catalog.jsonl" })`（字符串或数组）。结果中带有 `archive` 统计（`files`、`restored`、`unreadable` 等）。
 
 ## 示例
 

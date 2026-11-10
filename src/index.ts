@@ -5,6 +5,7 @@ export type {
   ParseTotals,
   DailyBucket,
   CacheStats,
+  ArchiveStats,
 } from "./parse.js";
 export { defaultCacheDir } from "./cache.js";
 export { renderSvg, formatMetricValue, defaultSinceFor } from "./svg.js";

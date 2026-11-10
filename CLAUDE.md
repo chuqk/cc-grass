@@ -18,6 +18,9 @@
 Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` の累計値の差分で数える。
 方式の理由と請求対象の写し方は D-2026-003。
 
+別の場所へ流した会話ログは、流した先の目録 (JSONL) を `--archive-catalog` で渡すと数え続ける。
+流した先の写しが正本・キャッシュは派生物で、キャッシュに無い分だけ写しから読み直す。読めなければ終了コード 3 (D-2026-005)。
+
 `--html` 出力の棒グラフツールチップにはモデル別の推定API費用を表示。単価表は `src/pricing.ts`:
 - モデル × 価格期間 (from/to) で持ち、その日に有効な単価で計算。改定は行を足す (上書きしない)
 - 載せるのは一次情報 (公式 docs・発表記事・その archive) で確認した値だけ。単価不明は `price n/a` と出す (D-2026-004)
@@ -28,7 +31,8 @@ Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` �
 | ファイル | 役割 |
 |---|---|
 | `src/parse.ts` | jsonl → 日別 bucket (トークン4種別 × モデル別)。Claude Code 形式と Codex rollout 形式の2パーサ。増分キャッシュ統合 |
-| `src/cache.ts` | ファイル単位の増分スキャンキャッシュ (mtime+size キー、`~/.cache/cc-grass/`) |
+| `src/cache.ts` | ファイル単位の増分スキャンキャッシュ (mtime+size キー、`~/.cache/cc-grass/`。目録ありは別ファイル + `archives` 印) |
+| `src/archive.ts` | 流した会話ログの目録読み込み・.gz / tar(.gz) の読み取り (依存ゼロの tar リーダ) |
 | `src/pricing.ts` | モデル別 API 単価テーブル (価格期間付き・日付で検索・ID 正規化) |
 | `src/levels.ts` | 値 → 草レベル (0-4) の閾値計算 |
 | `src/svg.ts` | bucket → SVG 文字列 |
@@ -46,7 +50,7 @@ Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` �
 
 ## 運用
 
-- `scripts/update-pages.sh` が gh-pages を更新 (bashboard cron 10分毎)
+- `scripts/update-pages.sh` が gh-pages を更新 (bashboard cron 10分毎)。母艦の目録の写し (`~/dev/daimon/senmu-runs/session-retention/catalog.jsonl`) を `--archive-catalog` で渡す
 - Pages デプロイは gh-pages ブランチ上の `.github/workflows/pages.yml` が実行 (build_type=workflow、計3試行、失敗通知は2 run 連続全滅時のみ)
 - npm publish: `npm version patch && npm publish --access=public && git push --follow-tags`
 

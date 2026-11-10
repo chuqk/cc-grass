@@ -60,10 +60,41 @@ Then paste into your README:
 | `--include-subagents` | on | Count subagent jsonl files (use `--no-include-subagents` to exclude) |
 | `--no-cache` | cache on | Re-scan every file instead of using the incremental cache |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | Override the cache location (`%LOCALAPPDATA%\cc-grass\Cache` on Windows) |
+| `--archive-catalog <path>` | — | Keep counting transcripts you moved elsewhere, as listed in this JSONL catalog (repeatable). See [Archived transcripts](#archived-transcripts) |
 | `--pricing-file <path>` | bundled rates | Load an additional verified, offline pricing catalog |
 | `--html` | off | Wrap the SVG in a minimal HTML page so hover tooltips work |
 | `--version`, `-v` | — | Print version |
 | `--help`, `-h` | — | Show help |
+
+## Archived transcripts
+
+If you move old transcripts out of `~/.claude/projects` or `~/.codex` (to a NAS, cold storage, …), they normally disappear from the grass on the next run. Pass a catalog of what you moved and their days stay:
+
+```bash
+cc-grass --archive-catalog ~/archive/catalog.jsonl -o grass.svg
+```
+
+The catalog is JSONL, one line per moved transcript:
+
+| Field | Required | Meaning |
+|---|---|---|
+| `source_path` | yes | Absolute path the transcript had before it was moved (e.g. `/home/me/.claude/projects/<project>/<session>.jsonl`). Lines outside the scanned folders are ignored. |
+| `nas_path` | yes | The archived copy: the `.jsonl` itself (`.gz` allowed), or a tar / `.tar.gz` bundle when `member` is set. Relative paths are resolved from the catalog's folder. |
+| `member` | no | Name of the transcript inside the bundle. Its companion folder (subagent logs) is read from the same bundle under `<member without .jsonl>/`. |
+| `nas_dir_archive` | no | tar / `.tar.gz` of the transcript's companion folder `<session>/` (subagent logs), with member paths relative to that folder. |
+| `mtime` | no | ISO 8601 modification time of the transcript when it was moved. If the cache only saw an older version, the archived copy is re-read. |
+
+Other fields are ignored. If the same `source_path` appears more than once, the last line wins.
+
+How it behaves:
+
+- Moved transcripts keep counting from the cache, so a normal run never touches the archive.
+- When the cache does not have them (first run, cache deleted, cache format upgrade), they are read back from the archived copies once and cached again.
+- If an archived copy cannot be read (e.g. the NAS is unmounted), cc-grass says how many transcripts it could not read, still writes the output, and exits with code 3. Nothing incomplete is cached; the next run retries. Scripts using `set -e` therefore skip publishing that run.
+- A transcript that disappears without a catalog line (deleted or renamed) drops out as before. A moved transcript copied back to its original path is counted once.
+- A catalog file that does not exist yet is treated as empty (with a note on stderr).
+- Catalog mode keeps its own cache file, so runs with and without `--archive-catalog` do not undo each other.
+- Programmatic use: `parseClaudeProjects({ archiveCatalog: "/path/catalog.jsonl" })` (a string or an array). The result carries `archive` stats (`files`, `restored`, `unreadable`, …).
 
 ## Examples
 

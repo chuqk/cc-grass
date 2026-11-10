@@ -30,6 +30,9 @@ Options:
   --no-include-subagents               Exclude subagent jsonl files
   --no-cache                           Re-scan every file (skip the incremental cache)
   --cache-dir <path>                   Override cache directory (default: ~/.cache/cc-grass)
+  --archive-catalog <path>             Keep counting transcripts moved elsewhere, as listed in this
+                                       JSONL catalog (repeatable; see README "Archived transcripts").
+                                       Exit code 3 if an archived copy could not be read
   --pricing-file <path>                Load a verified offline pricing catalog
   --html                               Output HTML page (with hover tooltips)
   --version, -v                        Print version and exit
@@ -86,6 +89,7 @@ async function main(): Promise<void> {
         "include-subagents": { type: "boolean", default: true },
         cache: { type: "boolean", default: true },
         "cache-dir": { type: "string" },
+        "archive-catalog": { type: "string", multiple: true },
         "pricing-file": { type: "string" },
         html: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
@@ -144,6 +148,7 @@ async function main(): Promise<void> {
     includeSubagents: values["include-subagents"],
     cache: values.cache,
     cacheDir: values["cache-dir"],
+    archiveCatalog: values["archive-catalog"],
   });
 
   const svg = renderSvg({
@@ -192,11 +197,30 @@ async function main(): Promise<void> {
     const cacheNote = result.cacheStats
       ? `, ${result.cacheStats.unchanged} cached / ${result.cacheStats.parsed} parsed`
       : "";
+    const archiveNote = result.archive
+      ? `, ${result.archive.files} archived` +
+        (result.archive.restored > 0 ? ` (${result.archive.restored} read back)` : "")
+      : "";
     process.stderr.write(
-      `wrote ${values.output} (${result.fileCount} files${cacheNote}, ${result.total.tokens.toLocaleString()} tokens)\n`,
+      `wrote ${values.output} (${result.fileCount} files${cacheNote}${archiveNote}, ${result.total.tokens.toLocaleString()} tokens)\n`,
     );
   } else {
     process.stdout.write(out);
+  }
+
+  const archive = result.archive;
+  if (archive) {
+    for (const path of archive.missingCatalogs) {
+      process.stderr.write(`note: archive catalog not found: ${path} (nothing archived yet?)\n`);
+    }
+    if (archive.unreadable > 0) {
+      process.stderr.write(
+        `warning: could not read ${archive.unreadable} archived transcript(s); ` +
+          `their days are missing or stale in this output and will be retried on the next run\n` +
+          archive.unreadablePaths.map((p) => `  ${p}\n`).join(""),
+      );
+      process.exitCode = 3;
+    }
   }
 }
 

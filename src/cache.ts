@@ -23,6 +23,11 @@ export interface CachedFileEntry {
 export interface ScanCache {
   version: number;
   files: Record<string, CachedFileEntry>;
+  /**
+   * Archive mode only: catalog source path -> identity of the archived copy
+   * whose files are accounted for in `files` (no need to read the archive).
+   */
+  archives?: Record<string, string>;
 }
 
 // v2: TokenBreakdown gained cacheWrite1h (1h-TTL subset of cacheWrite).
@@ -38,8 +43,8 @@ export function defaultCacheDir(): string {
   return join(base, "cc-grass");
 }
 
-export function cacheFileFor(cacheDir: string, projectsDir: string): string {
-  const hash = createHash("sha1").update(projectsDir).digest("hex").slice(0, 12);
+export function cacheFileFor(cacheDir: string, key: string): string {
+  const hash = createHash("sha1").update(key).digest("hex").slice(0, 12);
   return join(cacheDir, `scan-${hash}.json`);
 }
 

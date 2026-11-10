@@ -60,10 +60,41 @@ README에 붙이기:
 | `--include-subagents` | on | subagent jsonl 도 합산 (`--no-include-subagents`로 제외) |
 | `--no-cache` | 캐시 on | 증분 캐시를 쓰지 않고 매번 전체 파일을 스캔 |
 | `--cache-dir <path>` | `~/.cache/cc-grass` | 캐시 저장 위치 변경 (Windows는 `%LOCALAPPDATA%\cc-grass\Cache`) |
+| `--archive-catalog <path>` | — | 다른 곳으로 옮긴 트랜스크립트를 이 JSONL 카탈로그에 따라 계속 집계 (여러 번 지정 가능). [아카이브된 트랜스크립트](#아카이브된-트랜스크립트) 참고 |
 | `--pricing-file <path>` | 내장 요금 | 검증된 오프라인 가격 카탈로그를 추가로 읽기 |
 | `--html` | off | hover tooltip이 작동하는 최소 HTML 페이지로 출력 |
 | `--version`, `-v` | — | 버전 출력 |
 | `--help`, `-h` | — | 도움말 |
+
+## 아카이브된 트랜스크립트
+
+오래된 트랜스크립트를 `~/.claude/projects`나 `~/.codex`에서 다른 곳(NAS, 콜드 스토리지 등)으로 옮기면, 보통 다음 실행 때 잔디에서 사라집니다. 옮긴 항목의 카탈로그를 넘기면 그날들의 기록이 그대로 남습니다:
+
+```bash
+cc-grass --archive-catalog ~/archive/catalog.jsonl -o grass.svg
+```
+
+카탈로그는 JSONL 형식이며, 옮긴 트랜스크립트 하나당 한 줄입니다:
+
+| 필드 | 필수 | 의미 |
+|---|---|---|
+| `source_path` | 예 | 옮기기 전 트랜스크립트의 절대 경로 (예: `/home/me/.claude/projects/<project>/<session>.jsonl`). 스캔 대상 폴더 밖을 가리키는 줄은 무시됩니다. |
+| `nas_path` | 예 | 아카이브된 사본: `.jsonl` 파일 자체(`.gz` 허용), 또는 `member`가 지정된 경우 tar / `.tar.gz` 번들. 상대 경로는 카탈로그가 있는 폴더를 기준으로 해석됩니다. |
+| `member` | 아니요 | 번들 안의 트랜스크립트 이름. 딸린 폴더(subagent 로그)는 같은 번들의 `<member without .jsonl>/` 아래에서 읽습니다. |
+| `nas_dir_archive` | 아니요 | 트랜스크립트에 딸린 폴더 `<session>/`(subagent 로그)의 tar / `.tar.gz`. 멤버 경로는 그 폴더 기준의 상대 경로입니다. |
+| `mtime` | 아니요 | 옮길 당시 트랜스크립트의 수정 시각 (ISO 8601). 캐시가 이전 버전만 본 경우 아카이브된 사본을 다시 읽습니다. |
+
+그 밖의 필드는 무시됩니다. 같은 `source_path`가 여러 번 나오면 마지막 줄이 우선합니다.
+
+동작 방식:
+
+- 옮긴 트랜스크립트는 캐시에서 계속 집계되므로, 일반 실행에서는 아카이브를 전혀 건드리지 않습니다.
+- 캐시에 없는 경우(첫 실행, 캐시 삭제, 캐시 형식 업그레이드)에는 아카이브된 사본에서 한 번 다시 읽어 와 다시 캐시합니다.
+- 아카이브된 사본을 읽을 수 없으면(예: NAS가 마운트되지 않음) cc-grass는 읽지 못한 트랜스크립트 수를 알리고, 출력은 그대로 쓴 뒤 종료 코드 3으로 끝납니다. 불완전한 결과는 캐시하지 않으며, 다음 실행에서 다시 시도합니다. 따라서 `set -e`를 쓰는 스크립트는 그 회차의 게시를 건너뜁니다.
+- 카탈로그 줄 없이 사라진 트랜스크립트(삭제 또는 이름 변경)는 이전처럼 집계에서 빠집니다. 옮긴 트랜스크립트를 원래 경로로 다시 복사해도 한 번만 집계됩니다.
+- 아직 존재하지 않는 카탈로그 파일은 비어 있는 것으로 취급합니다(stderr에 안내 출력).
+- 카탈로그 모드는 별도의 캐시 파일을 쓰므로, `--archive-catalog`를 쓴 실행과 쓰지 않은 실행이 서로의 결과를 되돌리지 않습니다.
+- 프로그래밍 방식 사용: `parseClaudeProjects({ archiveCatalog: "/path/catalog.jsonl" })` (문자열 또는 배열). 결과에 `archive` 통계(`files`, `restored`, `unreadable`, …)가 포함됩니다.
 
 ## 예제
 
