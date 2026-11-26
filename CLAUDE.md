@@ -6,7 +6,7 @@
 
 ## 哲学
 
-- **依存ゼロ** — `fs`/`path`/`os` だけで完結
+- **依存ゼロ** — Node 標準モジュール (`node:*`) だけで完結。runtime の npm 依存は持たない
 - **クロスプラットフォーム** — Win / Mac / Linux、Node >=18
 - **シンプル** — SVG 生成だけ。push / cron は含めない
 - **GitHub 草パロディ** — dark mode contribution graph のピクセルパーフェクト再現
@@ -38,6 +38,7 @@ Codex CLI (`~/.codex/sessions`、`--no-codex` で除外可) は `token_count` �
 | `src/svg.ts` | bucket → SVG 文字列 |
 | `src/html.ts` | SVG + 棒グラフ付き HTML ページ。配色は固定表 `PAL` + 系列別グラデ `RAMP` (新モデルは系列色を自動割当)。凡例は系列ごとに1行 |
 | `src/cli.ts` | CLI エントリポイント |
+| `src/index.ts` | ライブラリとしての公開 API (re-export のみ。`package.json` の `main`/`exports` の入口) |
 
 ## 公開先
 
